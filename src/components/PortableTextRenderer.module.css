@@ -1,0 +1,87 @@
+/* ============================================================
+   Bewust minimale styling. Lettertype, -grootte, kleur en
+   line-height worden NIET hier vastgezet — die erven af van de
+   sectie die <PortableTextRenderer className="..."/> aanroept
+   (bijv. Hero's .heroPara, Positioning's .body, enz.), zodat
+   elke sectie zijn eigen bestaande typografie behoudt. Hier staat
+   alleen structurele opmaak: afstand tussen paragrafen/lijsten,
+   lijst-stijl, quote-styling, en de kop-schaal voor h2/h3 (die
+   nergens anders al een stijl hebben).
+   ============================================================ */
+
+.paragraph {
+  margin: 0 0 1em;
+  white-space: pre-line; /* laat Shift+Enter (harde regelafbreking) zichtbaar werken */
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.h2,
+.h3 {
+  font-family: var(--font-display), sans-serif;
+  color: inherit;
+  line-height: 1.25;
+  margin: 1.4em 0 0.6em;
+}
+
+.h2:first-child,
+.h3:first-child {
+  margin-top: 0;
+}
+
+.h2 {
+  font-size: 1.5em;
+}
+
+.h3 {
+  font-size: 1.2em;
+}
+
+.quote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 2px solid currentColor;
+  opacity: 0.85;
+  font-style: italic;
+  white-space: pre-line;
+}
+
+.bulletList,
+.numberList {
+  margin: 0 0 1em;
+  padding-left: 1.25em;
+}
+
+.bulletList:last-child,
+.numberList:last-child {
+  margin-bottom: 0;
+}
+
+.listItem {
+  margin-bottom: 0.4em;
+  white-space: pre-line;
+}
+
+.listItem:last-child {
+  margin-bottom: 0;
+}
+
+.link {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  color: inherit;
+}
+
+.link:hover {
+  opacity: 0.8;
+}
+
+/* De enige plek die de huisstijlkleur gebruikt — via de bestaande
+   CSS-variabele, geen losse hardcoded kleurwaarde. Verandert de
+   huisstijl ooit, dan gaat dit automatisch mee. Alleen tekstkleur,
+   geen achtergrond, font-weight blijft ongemoeid (erft af). */
+.brandHighlight {
+  color: var(--yellow);
+}

@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Approach.module.css';
 
@@ -165,9 +166,11 @@ export default function Approach({ data }: { data: HomepageData }) {
 
       <div className={`wrap ${styles.approachHeader}`} data-approach="header">
         <h2 className={`display ${styles.title}`}>{data.approachTitle}</h2>
-        <p className={styles.intro} data-approach="intro">
-          {data.approachIntro}
-        </p>
+        <PortableTextRenderer
+          value={data.approachIntro}
+          className={styles.intro}
+          data-approach="intro"
+        />
       </div>
 
       <div className={styles.stage} ref={stageRef}>
@@ -185,7 +188,7 @@ export default function Approach({ data }: { data: HomepageData }) {
                 <span className={styles.accentLine} />
                 <span className={styles.tag}>{panel.tag}</span>
                 <h3 className={`display ${styles.panelTitle}`}>{panel.title}</h3>
-                <p className={styles.panelBody}>{panel.body}</p>
+                <PortableTextRenderer value={panel.body} className={styles.panelBody} />
               </div>
             ))}
           </div>

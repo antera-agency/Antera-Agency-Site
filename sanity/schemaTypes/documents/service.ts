@@ -14,8 +14,7 @@ export default defineType({
     defineField({
       name: 'description',
       title: 'Omschrijving',
-      type: 'text',
-      rows: 3,
+      type: 'portableText',
     }),
     defineField({
       name: 'icon',
