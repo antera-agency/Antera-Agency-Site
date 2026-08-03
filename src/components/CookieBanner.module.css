@@ -1,0 +1,81 @@
+.banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: var(--black);
+  border-top: 1px solid var(--gold);
+  padding: 20px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.text {
+  color: var(--white);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 640px;
+  flex: 1 1 320px;
+}
+
+.text p {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* Beide knoppen delen exact dezelfde afmetingen, lettergrootte en
+   border-radius — alleen gevuld vs. omlijnd verschilt. Zo is
+   "Weigeren" precies zo makkelijk te vinden en aan te klikken als
+   "Accepteren", in plaats van een klein grijs linkje ernaast. */
+.accept,
+.decline {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1.5px solid var(--yellow);
+  min-width: 130px;
+  transition:
+    transform 0.25s var(--ease-premium),
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.accept {
+  background: var(--yellow);
+  color: var(--black);
+}
+
+.accept:hover {
+  transform: translateY(-2px);
+}
+
+.decline {
+  background: transparent;
+  color: var(--yellow);
+}
+
+.decline:hover {
+  background: var(--yellow);
+  color: var(--black);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 700px) {
+  .banner {
+    padding: 22px 40px;
+  }
+}

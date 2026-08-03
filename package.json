@@ -10,6 +10,7 @@
     "seed:sanity": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@next/third-parties": "^15.5.22",
     "@sanity/client": "^7.26.0",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^4.22.0",

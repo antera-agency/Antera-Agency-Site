@@ -43,3 +43,18 @@
   color: var(--black);
   box-shadow: 0 8px 18px rgba(255, 216, 0, 0.2);
 }
+
+.cookieSettingsLink {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 8px;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cookieSettingsLink:hover {
+  color: var(--yellow);
+}
