@@ -57,6 +57,16 @@
   max-width: 520px;
 }
 
+/* Herstelt exact de paragraaf-tussenruimte (14px, de oorspronkelijke
+   waarde van vóór de Portable Text-conversie) — zie de toelichting
+   bij dezelfde override in Positioning.module.css. */
+.body p {
+  margin-bottom: 14px;
+}
+.body p:last-child {
+  margin-bottom: 14px;
+}
+
 .stats {
   display: flex;
   gap: 28px;
