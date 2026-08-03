@@ -1,6 +1,7 @@
 
 import type { ContactInfoData } from '@/sanity/types';
 import styles from './Footer.module.css';
+import CookieSettingsButton from './CookieSettingsButton';
 import {
   FaInstagram,
   FaTiktok,
@@ -27,7 +28,9 @@ export default function Footer({ contact }: { contact: ContactInfoData }) {
   return (
     <footer className={styles.footer}>
       <div className={`wrap ${styles.inner}`}>
-        <div>© ANTERA AGENCY 2026</div>
+        <div>
+          © ANTERA AGENCY 2026 <CookieSettingsButton />
+        </div>
         <div className={styles.social}>
           {socialLinks.length > 0 ? (
             socialLinks.map((link) => (

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
+import ConsentProvider from '@/components/ConsentProvider';
 import { SITE_URL } from '@/lib/siteConfig';
 import './globals.css';
 
@@ -56,7 +58,26 @@ export default function RootLayout({
   return (
     <html lang="nl">
       <body>
+        {/* Consent Mode default-signalen: geen tracking, laadt niets
+            van Google — zet alleen lokaal vast dat alles standaard
+            geweigerd is, vóórdat GA4 ooit geladen kan worden. */}
+        <Script id="consent-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'denied',
+              functionality_storage: 'denied',
+              personalization_storage: 'denied',
+              security_storage: 'granted'
+            });
+          `}
+        </Script>
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
+        <ConsentProvider />
       </body>
     </html>
   );
