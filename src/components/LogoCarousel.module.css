@@ -1,0 +1,71 @@
+.logos {
+  background: var(--white);
+  padding: 70px 0;
+  border-bottom: 1px solid #eee;
+  overflow: clip;
+}
+
+.label {
+  text-align: center;
+  color: var(--gray);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.carousel {
+  position: relative;
+  height: 64px;
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+}
+
+.slide span {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: #b8b6ac;
+}
+
+.slide img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e0ddd0;
+  transition:
+    background 0.4s ease,
+    transform 0.4s ease;
+}
+
+.dot.active {
+  background: var(--gold);
+  transform: scale(1.5);
+}

@@ -1,0 +1,38 @@
+.positioning {
+  background: var(--white);
+}
+
+.eyebrow {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 26px;
+  max-width: 600px;
+}
+
+.line {
+  overflow: hidden;
+  display: block;
+  padding-bottom: 2px;
+}
+
+.lineInner {
+  display: block;
+}
+
+.body {
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: #3a3a34;
+  margin-bottom: 18px;
+  max-width: 560px;
+}

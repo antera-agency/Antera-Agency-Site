@@ -1,0 +1,121 @@
+.framework {
+  background: var(--black);
+  color: var(--white);
+  position: relative;
+}
+
+.header {
+  padding-bottom: 60px;
+}
+
+.eyebrow {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.title {
+  font-size: 32px;
+  margin-bottom: 14px;
+  line-height: 1.2;
+  max-width: 600px;
+}
+
+.intro {
+  color: #a8a69d;
+  font-size: 15.5px;
+  line-height: 1.65;
+  max-width: 480px;
+}
+
+.stage {
+  position: relative;
+  height: 420px;
+}
+
+.stageInner {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.progress {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 280px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+.progressFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--yellow);
+  border-radius: 3px;
+  height: 0%;
+}
+
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 44px;
+  opacity: 0;
+}
+
+.panelNum {
+  font-family: var(--font-display), sans-serif;
+  color: var(--yellow);
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  margin-bottom: 18px;
+}
+
+.panelTitle {
+  font-size: 34px;
+  margin-bottom: 18px;
+  max-width: 480px;
+  line-height: 1.15;
+}
+
+.panelBody {
+  color: #b8b6ad;
+  font-size: 16px;
+  line-height: 1.65;
+  max-width: 440px;
+}
+
+.loopNote {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 64px;
+  padding: 20px 24px;
+  background: rgba(255, 216, 0, 0.06);
+  border: 1px solid rgba(255, 216, 0, 0.2);
+  border-radius: 16px;
+  font-size: 14px;
+  color: var(--yellow);
+  font-weight: 600;
+  max-width: 600px;
+}
+
+@media (min-width: 700px) {
+  .panelTitle {
+    font-size: 42px;
+  }
+}

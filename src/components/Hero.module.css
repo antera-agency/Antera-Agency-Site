@@ -1,0 +1,149 @@
+.hero {
+  background: var(--black);
+  color: var(--white);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 60px;
+  position: relative;
+  overflow: clip;
+  perspective: 1200px;
+}
+
+.heroTop {
+  display: block;
+}
+
+.heroEyebrow {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+  overflow: hidden;
+}
+
+.heroTitle {
+  font-size: 38px;
+  line-height: 1.12;
+  margin-bottom: 26px;
+  max-width: 620px;
+}
+
+.line {
+  overflow: hidden;
+  display: block;
+  padding-bottom: 4px;
+}
+
+.lineInner {
+  display: block;
+}
+
+.heroPara {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #d8d6cf;
+  max-width: 520px;
+  margin-bottom: 38px;
+}
+
+.heroActions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+
+.heroVideoFrame {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 9 / 16;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--gold), var(--black));
+  border: 1px solid #2a2a20;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.heroVideoFrame video,
+.heroVideoFrame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroVideoMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  position: absolute;
+  inset: 0;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--yellow);
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
+  text-align: center;
+  padding: 20px;
+}
+
+.heroVideoGlow {
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(circle, rgba(255, 216, 0, 0.15), transparent 65%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.scrollCue {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #8a887e;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.scrollCueLine {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(var(--yellow), transparent);
+  transform-origin: top;
+}
+
+@media (min-width: 700px) {
+  .hero {
+    padding-top: 140px;
+  }
+  .heroTitle {
+    font-size: 52px;
+  }
+  .heroTop {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .heroVideoFrame {
+    max-width: 100%;
+    margin-left: auto;
+  }
+}

@@ -1,0 +1,59 @@
+.ctaSection {
+  background: var(--black);
+  color: var(--white);
+  text-align: center;
+  position: relative;
+  overflow: clip;
+}
+
+.markBig {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.markBig img {
+  width: 70px;
+  height: auto;
+}
+
+.title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 18px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.highlight {
+  color: var(--yellow);
+}
+
+.body {
+  color: #c8c6bd;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 440px;
+  margin: 0 auto 36px;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 340px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.buttons a {
+  text-align: center;
+}
+
+.note {
+  margin-top: 28px;
+  font-size: 13px;
+  color: #6b6960;
+  position: relative;
+}

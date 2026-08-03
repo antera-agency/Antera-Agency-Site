@@ -1,0 +1,150 @@
+.niches {
+  background: var(--gold);
+  color: var(--white);
+  position: relative;
+  overflow: clip;
+}
+
+.approachHeader {
+  padding-bottom: 8px;
+}
+
+.title {
+  font-size: 28px;
+  margin-bottom: 14px;
+  color: var(--white);
+}
+
+.intro {
+  color: #e8e4d4;
+  font-size: 15.5px;
+  line-height: 1.6;
+  max-width: 440px;
+}
+
+.stage {
+  position: relative;
+  height: 340vh;
+}
+
+.stageInner {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  gap: 0;
+  will-change: transform;
+  padding-left: 28px;
+}
+
+.panel {
+  flex: 0 0 auto;
+  width: min(80vw, 480px);
+  margin-right: 32px;
+  padding: 44px 40px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  position: relative;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 216, 0, 0.14), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.panel.isActive::before {
+  opacity: 1;
+}
+
+/* ---------- pulse: gentle "breathing" glow ring on the active
+   card, so the highlighted panel visibly feels alive rather than
+   a static highlight state. Runs continuously, driven by GSAP
+   (see Approach.tsx) rather than a CSS keyframe, so it can be
+   started/stopped precisely in sync with the scroll-driven
+   active-panel detection. ---------- */
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(255, 216, 0, 0);
+  pointer-events: none;
+}
+
+.num {
+  display: block;
+  font-size: 15px;
+  color: rgba(255, 216, 0, 0.5);
+  letter-spacing: 0.1em;
+  margin-bottom: 18px;
+  transition: color 0.5s ease;
+}
+
+.panel.isActive .num {
+  color: var(--yellow);
+}
+
+.accentLine {
+  display: block;
+  width: 0%;
+  height: 2px;
+  background: var(--yellow);
+  margin-bottom: 22px;
+  transition: width 0.7s var(--ease-premium);
+}
+
+.panel.isActive .accentLine {
+  width: 44px;
+}
+
+.tag {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+  position: relative;
+}
+
+.panelTitle {
+  font-family: var(--font-display), sans-serif;
+  font-size: 26px;
+  margin-bottom: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+  position: relative;
+}
+
+.panelBody {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: #e8e4d4;
+  position: relative;
+  max-width: 380px;
+}
+
+@media (min-width: 700px) {
+  .panel {
+    width: 420px;
+    padding: 52px 46px;
+  }
+  .panelTitle {
+    font-size: 29px;
+  }
+}
