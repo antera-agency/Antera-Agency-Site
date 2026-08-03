@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
+import { SITE_URL } from '@/lib/siteConfig';
 import './globals.css';
 
 // ============================================================
@@ -38,9 +39,13 @@ import './globals.css';
 // ============================================================
 
 export const metadata: Metadata = {
-  title: 'ANTERA AGENCY — Ons content framework laat jouw bedrijf opvallen',
+  // metadataBase is nodig zodat Next.js relatieve Open Graph-
+  // afbeeldingen correct kan omzetten naar volledige URL's, en
+  // voorkomt een build-waarschuwing hierover.
+  metadataBase: new URL(SITE_URL),
+  title: 'Antera Agency — Social Media & Short-Form Content Tilburg',
   description:
-    'Voor ambitieuze bedrijven en brands die hun social media serieus willen inzetten. Wij bouwen de strategie, filmen en posten.',
+    'Social media & short-form content agency in Tilburg, actief in heel Noord-Brabant. Wij maken video marketing content die klanten oplevert.',
 };
 
 export default function RootLayout({

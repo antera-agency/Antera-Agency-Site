@@ -129,6 +129,19 @@ export const fallbackHomepage: HomepageData = {
     { label: 'Boek een gesprek', url: '#', style: 'primary' },
     { label: 'Stuur een e-mail', url: 'mailto:info@antera.agency', style: 'secondary' },
   ],
+
+  // SEO-fallback: dit is de titel/omschrijving die Google toont
+  // zolang niemand in Sanity (Homepage → SEO) iets specifieks heeft
+  // ingevuld. Hoofdterm: "social media & short-form content agency
+  // Tilburg" — met "video marketing" en "Noord-Brabant" als
+  // ondersteunende termen in de omschrijving. Zie ook de
+  // structured data in src/components/StructuredData.tsx en de
+  // centrale bedrijfsgegevens in src/lib/siteConfig.ts.
+  seo: {
+    seoTitle: 'Antera Agency — Social Media & Short-Form Content Tilburg',
+    metaDescription:
+      'Social media & short-form content agency in Tilburg, actief in heel Noord-Brabant. Wij maken video marketing content die klanten oplevert.',
+  },
 };
 
 // Placeholder-slides — gebruikt als er nog geen portfolio-projecten

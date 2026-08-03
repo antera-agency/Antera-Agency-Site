@@ -180,6 +180,16 @@ async function seedHomepage() {
     ctaHighlight: fallbackHomepage.ctaHighlight,
     ctaBody: fallbackHomepage.ctaBody,
     ctaButtons: withKeys(fallbackHomepage.ctaButtons, 'ctaButton'),
+
+    ...(fallbackHomepage.seo
+      ? {
+          seo: {
+            _type: 'seo',
+            seoTitle: fallbackHomepage.seo.seoTitle,
+            metaDescription: fallbackHomepage.seo.metaDescription,
+          },
+        }
+      : {}),
   });
 }
 
