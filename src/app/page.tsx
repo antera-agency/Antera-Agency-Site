@@ -10,11 +10,13 @@ import Process from '@/components/Process';
 import About from '@/components/About';
 import CTA from '@/components/CTA';
 import Footer from '@/components/Footer';
+import StructuredData from '@/components/StructuredData';
 
 import { safeFetch } from '@/sanity/fetch';
 import { homepageQuery, contactInfoQuery, siteSettingsQuery } from '@/sanity/queries';
 import { fallbackHomepage, fallbackContactInfo, fallbackSiteSettings } from '@/sanity/fallback';
 import { urlFor } from '@/sanity/image';
+import { SITE_URL } from '@/lib/siteConfig';
 import type { HomepageData, ContactInfoData, SiteSettingsData } from '@/sanity/types';
 
 // ============================================================
@@ -32,21 +34,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const seo = homepage.seo;
   const fallbackSeo = settings.defaultSeo;
 
-  const title =
-    seo?.seoTitle || fallbackSeo?.seoTitle || 'ANTERA AGENCY — Ons content framework laat jouw bedrijf opvallen';
+  const title = seo?.seoTitle || fallbackSeo?.seoTitle || fallbackHomepage.seo?.seoTitle;
   const description =
-    seo?.metaDescription ||
-    fallbackSeo?.metaDescription ||
-    'Voor ambitieuze bedrijven en brands die hun social media serieus willen inzetten. Wij bouwen de strategie, filmen en posten.';
+    seo?.metaDescription || fallbackSeo?.metaDescription || fallbackHomepage.seo?.metaDescription;
   const ogImageSource = seo?.ogImage || fallbackSeo?.ogImage;
   const shareImageSource = seo?.socialShareImage || fallbackSeo?.socialShareImage || ogImageSource;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: SITE_URL,
+    },
     openGraph: {
       title,
       description,
+      url: SITE_URL,
+      siteName: 'Antera Agency',
+      locale: 'nl_NL',
+      type: 'website',
       images: ogImageSource ? [urlFor(ogImageSource).width(1200).height(630).url()] : undefined,
     },
     twitter: {
@@ -72,6 +78,7 @@ export default async function Home() {
 
   return (
     <>
+      <StructuredData />
       <Nav settings={settings} />
       <main>
         <Hero data={homepage} />
