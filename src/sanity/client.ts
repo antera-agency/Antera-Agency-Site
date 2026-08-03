@@ -17,6 +17,6 @@ export const client = createClient({
   projectId: isSanityConfigured ? projectId : 'placeholder',
   dataset: isSanityConfigured ? dataset : 'production',
   apiVersion,
-  useCdn: process.env.NODE_ENV === 'production',
+  useCdn: false,
   perspective: 'published',
 });
