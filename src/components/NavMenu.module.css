@@ -1,0 +1,146 @@
+/* ============================================================
+   Menu rechtsboven. Gebruikt uitsluitend bestaande merkvariabelen
+   uit globals.css (--black, --white, --yellow, --ease-premium) —
+   geen nieuwe kleuren, en geen wijziging aan bestaande stijlen.
+   ============================================================ */
+
+/* Groepeert de CTA-knop en de menu-knop, zodat de CTA een stukje
+   links van het menu-icoon staat. `position: relative` maakt deze
+   groep tevens het anker waar het uitklap-paneel zich aan uitlijnt. */
+.actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---------- hamburger-knop ---------- */
+.toggle {
+  position: relative;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  transition:
+    border-color 0.4s ease,
+    transform 0.4s var(--ease-premium);
+}
+
+.toggle:hover {
+  border-color: var(--yellow);
+  transform: translateY(-2px);
+}
+
+.bar {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  background: var(--white);
+  border-radius: 2px;
+  transition:
+    transform 0.4s var(--ease-premium),
+    opacity 0.25s ease,
+    background-color 0.4s ease;
+}
+
+/* Hamburger wordt een kruis wanneer het menu open staat */
+.toggleOpen {
+  border-color: var(--yellow);
+}
+
+.toggleOpen .bar:nth-child(1) {
+  transform: translateY(5.5px) rotate(45deg);
+  background: var(--yellow);
+}
+
+.toggleOpen .bar:nth-child(2) {
+  opacity: 0;
+}
+
+.toggleOpen .bar:nth-child(3) {
+  transform: translateY(-5.5px) rotate(-45deg);
+  background: var(--yellow);
+}
+
+/* ---------- paneel ---------- */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(10, 10, 8, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 95;
+  min-width: 230px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(10, 10, 8, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  transform-origin: top right;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 0.35s var(--ease-premium),
+    transform 0.35s var(--ease-premium),
+    visibility 0.35s;
+}
+
+.panelOpen {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  display: block;
+  padding: 11px 16px;
+  border-radius: 12px;
+  color: var(--white);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    padding-left 0.3s var(--ease-premium);
+}
+
+.link:hover {
+  background: rgba(255, 216, 0, 0.1);
+  color: var(--yellow);
+  padding-left: 20px;
+}
+
+/* Op smalle schermen mag het paneel de breedte volgen */
+@media (max-width: 480px) {
+  .panel {
+    min-width: 200px;
+  }
+}

@@ -1,0 +1,780 @@
+From 555e301ac53b86a1bfe2164446cd5c6086bf1f3a Mon Sep 17 00:00:00 2001
+From: "Claude (Cookie Consent GA4)" <assistant@anteraagency.nl>
+Date: Mon, 3 Aug 2026 20:04:09 +0000
+Subject: [PATCH] Cookiebanner voor GA4 met basic Google Consent Mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Nieuw:
+- src/lib/consent.ts — localStorage-opslag + event-mechanisme
+- src/components/CookieBanner.tsx (+ .module.css) — banner met
+  gelijkwaardige 'Accepteren'/'Weigeren'-knoppen, zwart/geel
+- src/components/ConsentProvider.tsx — leest opgeslagen keuze, zet
+  Consent Mode-signalen, rendert <GoogleAnalytics> (officiële
+  @next/third-parties-integratie) pas na 'Accepteren'
+- src/components/CookieSettingsButton.tsx — heropent de banner
+
+Minimaal gepatcht:
+- layout.tsx: Consent Mode default-script (alles standaard
+  'denied', behalve security_storage) + <ConsentProvider /> render
+- Footer.tsx / Footer.module.css: 'Cookie-instellingen'-link
+  toegevoegd naast copyright, verder ongewijzigd
+- .env.local.example: NEXT_PUBLIC_GA_MEASUREMENT_ID toegevoegd
+- package.json: @next/third-parties@15.5.22 toegevoegd
+
+Geen wijzigingen aan bestaande styling, animaties, portfolio-slider,
+Sanity-schema's, SEO-bestanden of overige componenten.
+
+Gevalideerd: tsc --noEmit, eslint, npm run build slagen zonder
+fouten. Handmatig geverifieerd dat het GA-scriptje
+(googletagmanager.com/gtag/js) niet in de server-gerenderde HTML
+voorkomt vóór toestemming — alleen het consent-default-script
+(dat niets van Google laadt) is aanwezig.
+---
+ .env.local.example                      |  4 ++
+ package-lock.json                       | 57 +++++++++++++++++
+ package.json                            |  1 +
+ src/app/layout.tsx                      | 21 +++++++
+ src/components/ConsentProvider.tsx      | 84 +++++++++++++++++++++++++
+ src/components/CookieBanner.module.css  | 81 ++++++++++++++++++++++++
+ src/components/CookieBanner.tsx         | 35 +++++++++++
+ src/components/CookieSettingsButton.tsx | 16 +++++
+ src/components/Footer.module.css        | 15 +++++
+ src/components/Footer.tsx               |  5 +-
+ src/lib/consent.ts                      | 29 +++++++++
+ 11 files changed, 347 insertions(+), 1 deletion(-)
+ create mode 100644 src/components/ConsentProvider.tsx
+ create mode 100644 src/components/CookieBanner.module.css
+ create mode 100644 src/components/CookieBanner.tsx
+ create mode 100644 src/components/CookieSettingsButton.tsx
+ create mode 100644 src/lib/consent.ts
+
+diff --git a/.env.local.example b/.env.local.example
+index 97d20fd..cc6de3c 100644
+--- a/.env.local.example
++++ b/.env.local.example
+@@ -25,3 +25,7 @@ SANITY_REVALIDATE_SECRET=
+ # "Add API token" → permissie "Editor". Nooit delen of committen —
+ # dit token kan schrijven naar je Sanity-project.
+ SANITY_API_WRITE_TOKEN=
++
++# Google Analytics 4 Measurement ID (bijv. G-XXXXXXXXXX). Zonder
++# deze waarde laadt er simpelweg geen GA4, ook niet na toestemming.
++NEXT_PUBLIC_GA_MEASUREMENT_ID=
+diff --git a/package-lock.json b/package-lock.json
+index 2935528..1279fb3 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,6 +8,7 @@
+       "name": "antera-next",
+       "version": "0.1.0",
+       "dependencies": {
++        "@next/third-parties": "^15.5.22",
+         "@sanity/client": "^7.26.0",
+         "@sanity/image-url": "^2.1.1",
+         "@sanity/vision": "^4.22.0",
+@@ -4337,6 +4338,19 @@
+         "node": ">= 10"
+       }
+     },
++    "node_modules/@next/third-parties": {
++      "version": "15.5.22",
++      "resolved": "https://registry.npmjs.org/@next/third-parties/-/third-parties-15.5.22.tgz",
++      "integrity": "sha512-1nb9lmV3sMKr5wrZ4scbjbYJp16tqEQOWPGDkDbPdJPkJ0/Iu95/SMiZ2YGFLyo+YEaHsARJfZKOGNE9m/5g2w==",
++      "license": "MIT",
++      "dependencies": {
++        "third-party-capital": "1.0.20"
++      },
++      "peerDependencies": {
++        "next": "^13.0.0 || ^14.0.0 || ^15.0.0",
++        "react": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0"
++      }
++    },
+     "node_modules/@noble/ed25519": {
+       "version": "3.1.0",
+       "resolved": "https://registry.npmjs.org/@noble/ed25519/-/ed25519-3.1.0.tgz",
+@@ -13935,6 +13949,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -13955,6 +13970,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -13975,6 +13991,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -13995,6 +14012,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14015,6 +14033,7 @@
+       "cpu": [
+         "arm"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14035,6 +14054,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14055,6 +14075,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14075,6 +14096,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14095,6 +14117,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14115,6 +14138,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -14135,6 +14159,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -18476,6 +18501,12 @@
+         "b4a": "^1.6.4"
+       }
+     },
++    "node_modules/third-party-capital": {
++      "version": "1.0.20",
++      "resolved": "https://registry.npmjs.org/third-party-capital/-/third-party-capital-1.0.20.tgz",
++      "integrity": "sha512-oB7yIimd8SuGptespDAZnNkzIz+NWaJCu2RMsbs4Wmp9zSDUM8Nhi3s2OOcqYuv3mN4hitXc8DVx+LyUmbUDiA==",
++      "license": "ISC"
++    },
+     "node_modules/through2": {
+       "version": "4.0.2",
+       "resolved": "https://registry.npmjs.org/through2/-/through2-4.0.2.tgz",
+@@ -18698,6 +18729,7 @@
+       "cpu": [
+         "ppc64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18714,6 +18746,7 @@
+       "cpu": [
+         "arm"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18730,6 +18763,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18746,6 +18780,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18762,6 +18797,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18778,6 +18814,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18794,6 +18831,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18810,6 +18848,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18826,6 +18865,7 @@
+       "cpu": [
+         "arm"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18842,6 +18882,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18858,6 +18899,7 @@
+       "cpu": [
+         "ia32"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18874,6 +18916,7 @@
+       "cpu": [
+         "loong64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18890,6 +18933,7 @@
+       "cpu": [
+         "mips64el"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18906,6 +18950,7 @@
+       "cpu": [
+         "ppc64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18922,6 +18967,7 @@
+       "cpu": [
+         "riscv64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18938,6 +18984,7 @@
+       "cpu": [
+         "s390x"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18954,6 +19001,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18970,6 +19018,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -18986,6 +19035,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19002,6 +19052,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19018,6 +19069,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19034,6 +19086,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19050,6 +19103,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19066,6 +19120,7 @@
+       "cpu": [
+         "arm64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19082,6 +19137,7 @@
+       "cpu": [
+         "ia32"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -19098,6 +19154,7 @@
+       "cpu": [
+         "x64"
+       ],
++      "dev": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+diff --git a/package.json b/package.json
+index 065355f..1cbbe64 100644
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "seed:sanity": "tsx scripts/seed.ts"
+   },
+   "dependencies": {
++    "@next/third-parties": "^15.5.22",
+     "@sanity/client": "^7.26.0",
+     "@sanity/image-url": "^2.1.1",
+     "@sanity/vision": "^4.22.0",
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index 5a0a7f6..c330ce5 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -1,5 +1,7 @@
+ import type { Metadata } from 'next';
++import Script from 'next/script';
+ import SmoothScrollProvider from '@/components/SmoothScrollProvider';
++import ConsentProvider from '@/components/ConsentProvider';
+ import { SITE_URL } from '@/lib/siteConfig';
+ import './globals.css';
+ 
+@@ -56,7 +58,26 @@ export default function RootLayout({
+   return (
+     <html lang="nl">
+       <body>
++        {/* Consent Mode default-signalen: geen tracking, laadt niets
++            van Google — zet alleen lokaal vast dat alles standaard
++            geweigerd is, vóórdat GA4 ooit geladen kan worden. */}
++        <Script id="consent-default" strategy="beforeInteractive">
++          {`
++            window.dataLayer = window.dataLayer || [];
++            function gtag(){dataLayer.push(arguments);}
++            gtag('consent', 'default', {
++              ad_storage: 'denied',
++              ad_user_data: 'denied',
++              ad_personalization: 'denied',
++              analytics_storage: 'denied',
++              functionality_storage: 'denied',
++              personalization_storage: 'denied',
++              security_storage: 'granted'
++            });
++          `}
++        </Script>
+         <SmoothScrollProvider>{children}</SmoothScrollProvider>
++        <ConsentProvider />
+       </body>
+     </html>
+   );
+diff --git a/src/components/ConsentProvider.tsx b/src/components/ConsentProvider.tsx
+new file mode 100644
+index 0000000..af5b684
+--- /dev/null
++++ b/src/components/ConsentProvider.tsx
+@@ -0,0 +1,84 @@
++'use client';
++
++import { useEffect, useState } from 'react';
++import { GoogleAnalytics } from '@next/third-parties/google';
++import {
++  getStoredConsent,
++  storeConsent,
++  OPEN_CONSENT_SETTINGS_EVENT,
++  type ConsentValue,
++} from '@/lib/consent';
++import CookieBanner from './CookieBanner';
++
++// window.dataLayer is al globaal getypeerd door @next/third-parties
++// (als Object[]) — hier alleen gtag zelf toevoegen aan die declaratie.
++declare global {
++  interface Window {
++    gtag?: (...args: unknown[]) => void;
++  }
++}
++
++const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
++
++// ============================================================
++// Basic Google Consent Mode: Google Analytics wordt pas geladen
++// (via <GoogleAnalytics />) nadat de bezoeker expliciet toestemming
++// heeft gegeven. Vóór die tijd staat er alleen het consent-default-
++// script (zie layout.tsx) — dat stuurt geen data, laadt niets van
++// Google, en zet enkel lokaal in de dataLayer dat alles standaard
++// geweigerd is.
++// ============================================================
++export default function ConsentProvider() {
++  const [consent, setConsent] = useState<ConsentValue | null>(null);
++  const [showBanner, setShowBanner] = useState(false);
++
++  useEffect(() => {
++    const stored = getStoredConsent();
++    setConsent(stored);
++    setShowBanner(stored === null);
++
++    if (stored) {
++      updateGtagConsent(stored);
++    }
++
++    function handleReopen() {
++      setShowBanner(true);
++    }
++    window.addEventListener(OPEN_CONSENT_SETTINGS_EVENT, handleReopen);
++    return () => window.removeEventListener(OPEN_CONSENT_SETTINGS_EVENT, handleReopen);
++  }, []);
++
++  function handleAccept() {
++    storeConsent('granted');
++    updateGtagConsent('granted');
++    setConsent('granted');
++    setShowBanner(false);
++  }
++
++  function handleDecline() {
++    storeConsent('denied');
++    updateGtagConsent('denied');
++    setConsent('denied');
++    setShowBanner(false);
++  }
++
++  return (
++    <>
++      {showBanner && <CookieBanner onAccept={handleAccept} onDecline={handleDecline} />}
++      {consent === 'granted' && GA_ID && <GoogleAnalytics gaId={GA_ID} />}
++    </>
++  );
++}
++
++function updateGtagConsent(value: ConsentValue) {
++  window.dataLayer = window.dataLayer || [];
++  window.gtag =
++    window.gtag ||
++    function gtag(...args: unknown[]) {
++      window.dataLayer!.push(args);
++    };
++  // Alleen analytics_storage wordt ooit op 'granted' gezet — er is
++  // geen advertentie-/marketinggebruik, dus de ad_*-signalen blijven
++  // permanent 'denied' (zie het default-script in layout.tsx).
++  window.gtag('consent', 'update', { analytics_storage: value });
++}
+diff --git a/src/components/CookieBanner.module.css b/src/components/CookieBanner.module.css
+new file mode 100644
+index 0000000..d337498
+--- /dev/null
++++ b/src/components/CookieBanner.module.css
+@@ -0,0 +1,81 @@
++.banner {
++  position: fixed;
++  left: 0;
++  right: 0;
++  bottom: 0;
++  z-index: 1000;
++  background: var(--black);
++  border-top: 1px solid var(--gold);
++  padding: 20px 24px;
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  justify-content: space-between;
++  gap: 16px;
++  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
++}
++
++.text {
++  color: var(--white);
++  font-size: 14px;
++  line-height: 1.55;
++  max-width: 640px;
++  flex: 1 1 320px;
++}
++
++.text p {
++  margin: 0;
++}
++
++.actions {
++  display: flex;
++  gap: 12px;
++  flex-wrap: wrap;
++  flex-shrink: 0;
++}
++
++/* Beide knoppen delen exact dezelfde afmetingen, lettergrootte en
++   border-radius — alleen gevuld vs. omlijnd verschilt. Zo is
++   "Weigeren" precies zo makkelijk te vinden en aan te klikken als
++   "Accepteren", in plaats van een klein grijs linkje ernaast. */
++.accept,
++.decline {
++  font-family: var(--font-body), sans-serif;
++  font-size: 14px;
++  font-weight: 600;
++  padding: 12px 22px;
++  border-radius: 999px;
++  cursor: pointer;
++  border: 1.5px solid var(--yellow);
++  min-width: 130px;
++  transition:
++    transform 0.25s var(--ease-premium),
++    background-color 0.25s ease,
++    color 0.25s ease;
++}
++
++.accept {
++  background: var(--yellow);
++  color: var(--black);
++}
++
++.accept:hover {
++  transform: translateY(-2px);
++}
++
++.decline {
++  background: transparent;
++  color: var(--yellow);
++}
++
++.decline:hover {
++  background: var(--yellow);
++  color: var(--black);
++  transform: translateY(-2px);
++}
++
++@media (min-width: 700px) {
++  .banner {
++    padding: 22px 40px;
++  }
++}
+diff --git a/src/components/CookieBanner.tsx b/src/components/CookieBanner.tsx
+new file mode 100644
+index 0000000..129b36e
+--- /dev/null
++++ b/src/components/CookieBanner.tsx
+@@ -0,0 +1,35 @@
++'use client';
++
++import styles from './CookieBanner.module.css';
++
++export default function CookieBanner({
++  onAccept,
++  onDecline,
++}: {
++  onAccept: () => void;
++  onDecline: () => void;
++}) {
++  return (
++    <div
++      className={styles.banner}
++      role="dialog"
++      aria-live="polite"
++      aria-label="Cookie-toestemming"
++    >
++      <div className={styles.text}>
++        <p>
++          Wij gebruiken alleen analytics-cookies om te begrijpen hoe bezoekers onze site
++          gebruiken — geen advertentie- of marketingcookies. Ga je akkoord?
++        </p>
++      </div>
++      <div className={styles.actions}>
++        <button type="button" className={styles.decline} onClick={onDecline}>
++          Weigeren
++        </button>
++        <button type="button" className={styles.accept} onClick={onAccept}>
++          Accepteren
++        </button>
++      </div>
++    </div>
++  );
++}
+diff --git a/src/components/CookieSettingsButton.tsx b/src/components/CookieSettingsButton.tsx
+new file mode 100644
+index 0000000..21f2fe4
+--- /dev/null
++++ b/src/components/CookieSettingsButton.tsx
+@@ -0,0 +1,16 @@
++'use client';
++
++import { OPEN_CONSENT_SETTINGS_EVENT } from '@/lib/consent';
++import styles from './Footer.module.css';
++
++export default function CookieSettingsButton() {
++  return (
++    <button
++      type="button"
++      className={styles.cookieSettingsLink}
++      onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_SETTINGS_EVENT))}
++    >
++      Cookie-instellingen
++    </button>
++  );
++}
+diff --git a/src/components/Footer.module.css b/src/components/Footer.module.css
+index ede9aa4..133deba 100644
+--- a/src/components/Footer.module.css
++++ b/src/components/Footer.module.css
+@@ -43,3 +43,18 @@
+   color: var(--black);
+   box-shadow: 0 8px 18px rgba(255, 216, 0, 0.2);
+ }
++
++.cookieSettingsLink {
++  background: none;
++  border: none;
++  padding: 0;
++  margin-left: 8px;
++  color: inherit;
++  font: inherit;
++  text-decoration: underline;
++  cursor: pointer;
++}
++
++.cookieSettingsLink:hover {
++  color: var(--yellow);
++}
+diff --git a/src/components/Footer.tsx b/src/components/Footer.tsx
+index edf3ef4..5be84bf 100644
+--- a/src/components/Footer.tsx
++++ b/src/components/Footer.tsx
+@@ -1,6 +1,7 @@
+ 
+ import type { ContactInfoData } from '@/sanity/types';
+ import styles from './Footer.module.css';
++import CookieSettingsButton from './CookieSettingsButton';
+ import {
+   FaInstagram,
+   FaTiktok,
+@@ -27,7 +28,9 @@ export default function Footer({ contact }: { contact: ContactInfoData }) {
+   return (
+     <footer className={styles.footer}>
+       <div className={`wrap ${styles.inner}`}>
+-        <div>© ANTERA AGENCY 2026</div>
++        <div>
++          © ANTERA AGENCY 2026 <CookieSettingsButton />
++        </div>
+         <div className={styles.social}>
+           {socialLinks.length > 0 ? (
+             socialLinks.map((link) => (
+diff --git a/src/lib/consent.ts b/src/lib/consent.ts
+new file mode 100644
+index 0000000..a8bca43
+--- /dev/null
++++ b/src/lib/consent.ts
+@@ -0,0 +1,29 @@
++// ============================================================
++// Kleine, afhankelijkheidsvrije laag voor cookie-toestemming.
++// Bewaart de keuze lokaal (localStorage) zodat de banner niet
++// telkens terugkomt, en biedt een simpel event-mechanisme zodat
++// een los onderdeel (bijv. een "Cookie-instellingen"-link in de
++// footer) de banner opnieuw kan laten verschijnen zonder dat er
++// React-context door de hele boom heen hoeft te lopen.
++// ============================================================
++
++export type ConsentValue = 'granted' | 'denied';
++
++const STORAGE_KEY = 'antera-consent-analytics';
++
++// Dispatched wanneer de bezoeker een keuze maakt (of wijzigt).
++export const CONSENT_CHANGE_EVENT = 'antera-consent-change';
++
++// Dispatched door bijv. de footer-link om de banner opnieuw te tonen.
++export const OPEN_CONSENT_SETTINGS_EVENT = 'antera-open-consent-settings';
++
++export function getStoredConsent(): ConsentValue | null {
++  if (typeof window === 'undefined') return null;
++  const value = window.localStorage.getItem(STORAGE_KEY);
++  return value === 'granted' || value === 'denied' ? value : null;
++}
++
++export function storeConsent(value: ConsentValue) {
++  window.localStorage.setItem(STORAGE_KEY, value);
++  window.dispatchEvent(new CustomEvent(CONSENT_CHANGE_EVENT, { detail: value }));
++}
+-- 
+2.43.0
+
