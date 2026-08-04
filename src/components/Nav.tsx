@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 import type { SiteSettingsData } from '@/sanity/types';
+import NavMenu from './NavMenu';
+import menuStyles from './NavMenu.module.css';
 
 export default function Nav({ settings }: { settings: SiteSettingsData }) {
   const navRef = useRef<HTMLElement>(null);
@@ -45,12 +47,16 @@ export default function Nav({ settings }: { settings: SiteSettingsData }) {
           />
         </Link>
 
-        <a
-          href={settings.navCtaUrl || '#contact'}
-          className="nav-cta"
-        >
-          {settings.navCtaLabel || 'Boek een gesprek'}
-        </a>
+        <div className={menuStyles.actions}>
+          <a
+            href={settings.navCtaUrl || '#contact'}
+            className="nav-cta"
+          >
+            {settings.navCtaLabel || 'Boek een gesprek'}
+          </a>
+
+          <NavMenu />
+        </div>
       </div>
     </nav>
   );

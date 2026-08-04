@@ -32,9 +32,16 @@
   max-width: 480px;
 }
 
+/* De hoogte moet gelijk zijn aan die van .stageInner hieronder.
+   Stond eerder op 420px terwijl de inhoud 100svh hoog is — daardoor
+   puilde de sectie honderden pixels buiten zijn eigen container en
+   liep hij over de intro-tekst erboven en de loop-notitie eronder
+   heen. De scroll-duur van de animatie verandert hier niet door:
+   die wordt bepaald door de pin-instelling in Framework.tsx
+   (end: '+=500%'), niet door deze hoogte. */
 .stage {
   position: relative;
-  height: 420px;
+  height: 100svh;
 }
 
 .stageInner {
