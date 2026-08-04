@@ -44,8 +44,13 @@
 import { config as loadEnv } from 'dotenv';
 import { createClient, type SanityClient } from '@sanity/client';
 import type { PortableTextBlock } from '@portabletext/types';
+import { writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 loadEnv({ path: '.env.local' });
+
+// Map waarin backups worden weggeschreven vóór elke echte migratie.
+const BACKUP_DIR = 'sanity-backups';
 
 // ============================================================
 // Config + validatie
@@ -337,7 +342,36 @@ function report(
   console.log(APPLY ? '  MIGRATIE (--apply: er WORDT geschreven)' : '  DRY-RUN — er wordt NIETS geschreven');
   console.log('='.repeat(64));
   console.log(`  Project: ${projectId}  ·  Dataset: ${dataset}`);
-  console.log(`  Documenten gescand: ${docs.length}`);
+
+  const scannedDrafts = docs.filter((d) => (d._id as string).startsWith('drafts.'));
+  const scannedPublished = docs.filter((d) => !(d._id as string).startsWith('drafts.'));
+  const byType = new Map<string, number>();
+  docs.forEach((d) => {
+    const t = d._type as string;
+    byType.set(t, (byType.get(t) ?? 0) + 1);
+  });
+
+  console.log(`\n  Documenten gevonden : ${docs.length}`);
+  console.log(`    · gepubliceerd     : ${scannedPublished.length}`);
+  console.log(`    · drafts           : ${scannedDrafts.length}`);
+  console.log(`  Per type:`);
+  for (const [type, count] of byType) {
+    console.log(`    · ${type.padEnd(16)} : ${count}`);
+  }
+
+  // Documenten die GEEN wijziging nodig hebben
+  const untouched = docs.filter((d) => !touchedDocs.has(d._id as string));
+  console.log('\n' + '-'.repeat(64));
+  console.log('  DOCUMENTEN DIE WORDEN OVERGESLAGEN (geen wijziging nodig)');
+  console.log('-'.repeat(64));
+  if (untouched.length === 0) {
+    console.log('  (geen — elk gevonden document heeft minstens één veld te converteren)');
+  } else {
+    untouched.forEach((d) => {
+      const id = d._id as string;
+      console.log(`  · ${id}${id.startsWith('drafts.') ? '  [DRAFT]' : ''}  (${d._type})`);
+    });
+  }
 
   // ---------- Documenten die geraakt worden ----------
   console.log('\n' + '-'.repeat(64));
@@ -380,16 +414,47 @@ function report(
     });
   }
 
-  // ---------- Overgeslagen ----------
+  // ---------- Overgeslagen: routine (al gemigreerd) ----------
+  const alreadyPT = skipped.filter((s) => s.reason === 'is al Portable Text');
+  const warnings = skipped.filter((s) => s.reason !== 'is al Portable Text');
+
   console.log('\n' + '-'.repeat(64));
-  console.log('  OVERGESLAGEN VELDEN');
+  console.log('  OVERGESLAGEN — AL PORTABLE TEXT (routine, geen actie nodig)');
   console.log('-'.repeat(64));
-  if (skipped.length === 0) {
+  if (alreadyPT.length === 0) {
     console.log('  (geen)');
   } else {
-    skipped.forEach((s) => {
-      console.log(`  · ${s.documentId} → ${s.path}\n      reden: ${s.reason}`);
+    alreadyPT.forEach((s) => {
+      console.log(`  · ${s.documentId} → ${s.path}`);
     });
+  }
+
+  // ---------- Waarschuwingen ----------
+  console.log('\n' + '-'.repeat(64));
+  console.log('  ⚠️  WAARSCHUWINGEN (vereisen mogelijk handmatige aandacht)');
+  console.log('-'.repeat(64));
+  const missingKeys = warnings.filter((s) => s.reason.includes('GEEN _key'));
+  const otherWarnings = warnings.filter((s) => !s.reason.includes('GEEN _key'));
+
+  if (warnings.length === 0) {
+    console.log('  ✓ Geen waarschuwingen — alle array-items hebben een _key en');
+    console.log('    alle veldwaarden hadden een verwachte vorm.');
+  } else {
+    if (missingKeys.length > 0) {
+      console.log(`\n  Ontbrekende _key-waarden (${missingKeys.length}):`);
+      console.log('  Deze array-items kunnen NIET veilig gericht gepatcht worden en');
+      console.log('  worden overgeslagen. Los op door het item in de Studio even te');
+      console.log('  bewerken/opnieuw op te slaan (Sanity zet dan zelf een _key).');
+      missingKeys.forEach((s) => {
+        console.log(`    · ${s.documentId} → ${s.path}`);
+      });
+    }
+    if (otherWarnings.length > 0) {
+      console.log(`\n  Onverwachte veldvormen (${otherWarnings.length}):`);
+      otherWarnings.forEach((s) => {
+        console.log(`    · ${s.documentId} → ${s.path}\n        ${s.reason}`);
+      });
+    }
   }
 
   // ---------- Totalen ----------
@@ -399,15 +464,83 @@ function report(
   console.log('\n' + '='.repeat(64));
   console.log('  TOTAAL');
   console.log('='.repeat(64));
-  console.log(`  Documenten die geraakt worden : ${touchedDocs.size}`);
-  console.log(`    · gepubliceerd              : ${published.size}`);
-  console.log(`    · drafts                    : ${drafts.size}`);
+  console.log(`  Documenten gevonden            : ${docs.length}`);
+  console.log(`  Documenten die geraakt worden  : ${touchedDocs.size}`);
+  console.log(`    · gepubliceerd               : ${published.size}`);
+  console.log(`    · drafts                     : ${drafts.size}`);
+  console.log(`  Documenten overgeslagen        : ${docs.length - touchedDocs.size}`);
   console.log(`  Velden die geconverteerd worden: ${patches.length}`);
-  console.log(`  Velden overgeslagen            : ${skipped.length}`);
-  console.log(
-    `    · waarvan al Portable Text   : ${skipped.filter((s) => s.reason === 'is al Portable Text').length}`
-  );
+  console.log(`  Velden al Portable Text        : ${alreadyPT.length}`);
+  console.log(`  Waarschuwingen                 : ${warnings.length}`);
+  console.log(`    · ontbrekende _key           : ${missingKeys.length}`);
   console.log('='.repeat(64));
+}
+
+// ============================================================
+// Backup — draait ALTIJD vóór een echte migratie
+// ============================================================
+
+/**
+ * Schrijft de VOLLEDIGE originele documenten (niet alleen de te
+ * wijzigen velden) weg naar een tijdgestempeld JSON-bestand, zodat
+ * je altijd exact kan terugvallen op de staat van vóór de migratie.
+ *
+ * Gooit een fout als het wegschrijven niet lukt of als het bestand
+ * daarna niet verifieerbaar op schijf staat — de aanroeper voert
+ * de migratie dan niet uit.
+ */
+function createBackup(
+  allDocs: Record<string, unknown>[],
+  touchedDocs: Set<string>
+): string {
+  // Alleen documenten die daadwerkelijk geraakt worden, maar dan
+  // wel in hun geheel — inclusief alle velden die de migratie NIET
+  // aanraakt, zodat een volledige restore mogelijk is.
+  const docsToBackup = allDocs.filter((doc) => touchedDocs.has(doc._id as string));
+
+  if (docsToBackup.length === 0) {
+    throw new Error('Geen documenten om te back-uppen — migratie afgebroken.');
+  }
+
+  if (!existsSync(BACKUP_DIR)) {
+    mkdirSync(BACKUP_DIR, { recursive: true });
+  }
+
+  const now = new Date();
+  const stamp =
+    `${now.getFullYear()}-` +
+    `${String(now.getMonth() + 1).padStart(2, '0')}-` +
+    `${String(now.getDate()).padStart(2, '0')}-` +
+    `${String(now.getHours()).padStart(2, '0')}` +
+    `${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const filename = join(BACKUP_DIR, `portable-text-backup-${stamp}.json`);
+
+  const payload = {
+    createdAt: now.toISOString(),
+    projectId,
+    dataset,
+    note:
+      'Volledige originele documenten van vóór de Portable Text-migratie. ' +
+      'Herstellen kan door deze documenten terug te zetten in Sanity ' +
+      '(bijv. via de Sanity CLI: `sanity documents create --replace <bestand>`), ' +
+      'of handmatig per veld.',
+    documentCount: docsToBackup.length,
+    documents: docsToBackup,
+  };
+
+  writeFileSync(filename, JSON.stringify(payload, null, 2), 'utf8');
+
+  // Verifieer dat het bestand er daadwerkelijk staat en niet leeg is.
+  if (!existsSync(filename) || statSync(filename).size === 0) {
+    throw new Error(`Backup-bestand kon niet geverifieerd worden: ${filename}`);
+  }
+
+  const sizeKb = (statSync(filename).size / 1024).toFixed(1);
+  console.log(`\n💾 Backup aangemaakt: ${filename}`);
+  console.log(`   ${docsToBackup.length} volledig document(en), ${sizeKb} kB`);
+
+  return filename;
 }
 
 // ============================================================
@@ -449,9 +582,10 @@ async function main() {
 
   if (!APPLY) {
     console.log(
-      '\nDit was een DRY-RUN — er is niets gewijzigd.\n' +
+      '\nDit was een DRY-RUN — er is niets gewijzigd en er is geen backup gemaakt.\n' +
         'Om de migratie daadwerkelijk uit te voeren:\n' +
-        '  npm run migrate:portable-text -- --apply\n'
+        '  npm run migrate:portable-text -- --apply\n' +
+        '(daarbij wordt automatisch éérst een volledige backup weggeschreven)\n'
     );
     return;
   }
@@ -461,7 +595,20 @@ async function main() {
     return;
   }
 
+  // Backup is een harde voorwaarde: mislukt deze, dan wordt er
+  // niets gepatcht.
+  let backupFile: string;
+  try {
+    backupFile = createBackup(docs, touchedDocs);
+  } catch (err) {
+    console.error('\n❌ Backup mislukt — de migratie is NIET uitgevoerd.\n');
+    console.error(err);
+    process.exit(1);
+  }
+
   await apply(patches);
+
+  console.log(`   Backup van de originele staat: ${backupFile}\n`);
 }
 
 main().catch((err) => {
