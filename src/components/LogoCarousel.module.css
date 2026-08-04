@@ -1,71 +1,185 @@
 .logos {
-  background: var(--white);
+  overflow: hidden;
   padding: 70px 0;
+  background: var(--white);
   border-bottom: 1px solid #eee;
-  overflow: clip;
 }
 
 .label {
-  text-align: center;
+  margin-bottom: 40px;
   color: var(--gray);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
+  text-align: center;
   text-transform: uppercase;
-  margin-bottom: 40px;
 }
 
 .carousel {
+  --logo-gap: clamp(50px, 6vw, 96px);
+
   position: relative;
-  height: 64px;
-  max-width: 420px;
-  margin: 0 auto;
+  width: 100%;
   overflow: hidden;
 }
 
-.slide {
-  position: absolute;
-  inset: 0;
+/*
+ * De track bevat bij animatie twee identieke groepen.
+ * Hij blijft altijd één horizontale rij.
+ */
+.track {
   display: flex;
   align-items: center;
+  width: max-content;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--logo-gap);
+  width: max-content;
+
+  /*
+   * Deze ruimte hoort bij iedere groep.
+   * Daardoor zijn beide groepen exact even breed en kan de
+   * animatie naadloos met translateX(-50%) herstarten.
+   */
+  padding-right: var(--logo-gap);
+}
+
+.logoItem {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
   justify-content: center;
-  opacity: 0;
-  clip-path: inset(0 100% 0 0);
+  width: clamp(150px, 16vw, 235px);
+  height: 94px;
 }
 
-.slide span {
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 0.02em;
-  color: #b8b6ac;
-}
-
-.slide img {
-  height: 36px;
+.logoImage {
+  display: block;
   width: auto;
+  height: clamp(58px, 5vw, 76px);
+  max-width: 100%;
   object-fit: contain;
   filter: grayscale(1);
-  opacity: 0.7;
-}
-
-.dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 28px;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #e0ddd0;
+  opacity: 0.78;
   transition:
-    background 0.4s ease,
-    transform 0.4s ease;
+    filter 250ms ease,
+    opacity 250ms ease,
+    transform 250ms ease;
 }
 
-.dot.active {
-  background: var(--gold);
-  transform: scale(1.5);
+.brandName {
+  color: #b8b6ac;
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Alleen actief wanneer de originele rij niet in de container past. */
+.isAnimated .track {
+  animation: logoMarquee 32s linear infinite;
+}
+
+/* Alleen pauzeren op apparaten die echte hover ondersteunen. */
+@media (hover: hover) and (pointer: fine) {
+  .isAnimated:hover .track {
+    animation-play-state: paused;
+  }
+
+  .logoItem:hover .logoImage {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/*
+ * Bij te weinig logo’s:
+ * - geen animatie;
+ * - één horizontale rij;
+ * - netjes gecentreerd.
+ */
+.isStatic .track {
+  width: 100%;
+  justify-content: center;
+}
+
+.isStatic .group {
+  justify-content: center;
+  padding-right: 0;
+}
+
+@keyframes logoMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    /*
+     * De track bestaat uit twee exact even brede groepen.
+     * Na -50% staat de tweede groep precies waar de eerste begon.
+     */
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 700px) {
+  .logos {
+    padding: 54px 0;
+  }
+
+  .label {
+    margin-bottom: 30px;
+  }
+
+  .carousel {
+    --logo-gap: 38px;
+  }
+
+  .logoItem {
+    width: 145px;
+    height: 78px;
+  }
+
+  .logoImage {
+    height: 52px;
+  }
+
+  .isAnimated .track {
+    animation-duration: 25s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel {
+    overflow: visible;
+  }
+
+  .track {
+    width: 100%;
+    animation: none !important;
+    justify-content: center;
+    will-change: auto;
+  }
+
+  .group {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-right: 0;
+  }
+
+  .group[aria-hidden='true'] {
+    display: none;
+  }
+
+  .logoImage {
+    transition: none;
+  }
 }
