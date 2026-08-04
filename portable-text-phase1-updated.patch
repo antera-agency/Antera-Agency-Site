@@ -1,0 +1,1714 @@
+From dd16621c9df46333bd30a6107e1c65818b29deb0 Mon Sep 17 00:00:00 2001
+From: "Claude (Portable Text Fase 1)" <assistant@anteraagency.nl>
+Date: Mon, 3 Aug 2026 21:10:05 +0000
+Subject: [PATCH 1/2] Fase 1: Portable Text architectuur (geen
+ content-migratie)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Nieuw:
+- sanity/schemaTypes/objects/portableText.ts — centraal rich-text
+  schema: Normal/H2/H3/Quote, Bold/Italic/Brand Highlight, Bullet/
+  Numbered lists, Link-annotatie (intern anker / extern + nieuw
+  tabblad-optie)
+- src/components/PortableText/{types,marks,blocks,lists,index}.tsx
+  — modulaire renderer-architectuur, exact zoals gevraagd
+- src/components/PortableTextRenderer.tsx — de ene centrale
+  renderer die alle secties gebruiken
+- src/components/PortableTextRenderer.module.css — minimale,
+  overervende typografie; Brand Highlight via var(--yellow)
+- src/lib/portableText.ts — platte tekst -> Portable Text-blokken
+  (gebruikt door fallback.ts nu, en het migratiescript in Fase 2)
+
+Schema's gewijzigd (13 velden -> portableText):
+- homepage.ts: heroSubtitle, positioningParagraphs, approachIntro,
+  approachPanels[].body, frameworkIntro, frameworkSteps[].body,
+  frameworkLoopNote, processSteps[].body, aboutParagraphs, ctaBody
+- service.ts: description
+- testimonial.ts: testimonial
+- contactInfo.ts: contactCtaText
+
+Frontend: Hero/Positioning/Approach/Framework/Process/About/CTA
+gebruiken nu PortableTextRenderer. Bestaande data-*-animatie-
+attributen zijn verplaatst naar de renderer-wrapper (props-
+doorgifte toegevoegd aan PortableTextRenderer); waar meerdere
+paragrafen voorheen individueel geanimeerd werden (Positioning,
+About) is een dedicated selector toegevoegd die de losse <p>-tags
+binnen de wrapper target, zodat het gestaggerde animatiegedrag
+exact hetzelfde blijft.
+
+queries.ts: geen wijziging nodig (GROQ retourneert array-of-block
+velden al volledig zonder speciale projectie).
+
+GEEN content-migratie. GEEN migratiescript. Bestaande Sanity-content
+niet aangeraakt — dat is Fase 2, na goedkeuring.
+
+Gevalideerd: tsc --noEmit, eslint, npm run build slagen allemaal
+zonder fouten. Handmatig geverifieerd dat alle geconverteerde
+fallback-teksten (hero, positioning x2, about x2, framework loop
+note) correct renderen via de nieuwe pijplijn, en dat /studio nog
+laadt met het nieuwe schema.
+---
+ package-lock.json                             | 119 +++++++-----------
+ package.json                                  |   1 +
+ sanity/schemaTypes/documents/contactInfo.ts   |   3 +-
+ sanity/schemaTypes/documents/homepage.ts      |  45 ++++---
+ sanity/schemaTypes/documents/service.ts       |   3 +-
+ sanity/schemaTypes/documents/testimonial.ts   |   3 +-
+ sanity/schemaTypes/index.ts                   |   2 +
+ sanity/schemaTypes/objects/portableText.ts    | 116 +++++++++++++++++
+ src/components/About.tsx                      |  39 +++++-
+ src/components/Approach.tsx                   |  11 +-
+ src/components/CTA.tsx                        |   5 +-
+ src/components/Framework.tsx                  |   8 +-
+ src/components/Hero.tsx                       |   9 +-
+ src/components/PortableText/blocks.tsx        |  16 +++
+ src/components/PortableText/index.tsx         |  40 ++++++
+ src/components/PortableText/lists.tsx         |  16 +++
+ src/components/PortableText/marks.tsx         |  47 +++++++
+ src/components/PortableText/types.tsx         |  23 ++++
+ .../PortableTextRenderer.module.css           |  87 +++++++++++++
+ src/components/PortableTextRenderer.tsx       |  42 +++++++
+ src/components/Positioning.tsx                |  18 ++-
+ src/components/Process.tsx                    |   3 +-
+ src/lib/portableText.ts                       |  55 ++++++++
+ src/sanity/fallback.ts                        |  82 ++++++++----
+ src/sanity/types.ts                           |  27 ++--
+ 25 files changed, 661 insertions(+), 159 deletions(-)
+ create mode 100644 sanity/schemaTypes/objects/portableText.ts
+ create mode 100644 src/components/PortableText/blocks.tsx
+ create mode 100644 src/components/PortableText/index.tsx
+ create mode 100644 src/components/PortableText/lists.tsx
+ create mode 100644 src/components/PortableText/marks.tsx
+ create mode 100644 src/components/PortableText/types.tsx
+ create mode 100644 src/components/PortableTextRenderer.module.css
+ create mode 100644 src/components/PortableTextRenderer.tsx
+ create mode 100644 src/lib/portableText.ts
+
+diff --git a/package-lock.json b/package-lock.json
+index 1279fb3..cbfac09 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -9,6 +9,7 @@
+       "version": "0.1.0",
+       "dependencies": {
+         "@next/third-parties": "^15.5.22",
++        "@portabletext/react": "^7.0.1",
+         "@sanity/client": "^7.26.0",
+         "@sanity/image-url": "^2.1.1",
+         "@sanity/vision": "^4.22.0",
+@@ -4802,27 +4803,6 @@
+         "node": ">=20.19 <22 || >=22.12"
+       }
+     },
+-    "node_modules/@portabletext/markdown/node_modules/@portabletext/toolkit": {
+-      "version": "5.0.2",
+-      "resolved": "https://registry.npmjs.org/@portabletext/toolkit/-/toolkit-5.0.2.tgz",
+-      "integrity": "sha512-Njc1LE1PMJkTx/wEPqZ6sOWGgFgX2B47fxpOQ/Ia4ByhsZoA5Sq8dNvvV5F052j/xE8TbOLiBEjS848FkKADDQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "@portabletext/types": "^4.0.2"
+-      },
+-      "engines": {
+-        "node": ">=20.19 <22 || >=22.12"
+-      }
+-    },
+-    "node_modules/@portabletext/markdown/node_modules/@portabletext/types": {
+-      "version": "4.0.2",
+-      "resolved": "https://registry.npmjs.org/@portabletext/types/-/types-4.0.2.tgz",
+-      "integrity": "sha512-djfIGU9n6DRrunlvj2nIDAp17URo/nA4jSXGvf+Gupx8NLLy9fmJBZ3GL8yhqn9lSVc+cKCharjOa3aOBnWbRw==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=20.19 <22 || >=22.12"
+-      }
+-    },
+     "node_modules/@portabletext/patches": {
+       "version": "2.0.5",
+       "resolved": "https://registry.npmjs.org/@portabletext/patches/-/patches-2.0.5.tgz",
+@@ -4924,19 +4904,19 @@
+       }
+     },
+     "node_modules/@portabletext/react": {
+-      "version": "4.0.3",
+-      "resolved": "https://registry.npmjs.org/@portabletext/react/-/react-4.0.3.tgz",
+-      "integrity": "sha512-sdVSXbi0L5MBVb1Ch5KwbBPZjW/Oqe6s5ZkPi4LcItzHl8rqY2jB0VxsFaGywZyn8Jc47cGLaOtyBM9HkW/9Hg==",
++      "version": "7.0.1",
++      "resolved": "https://registry.npmjs.org/@portabletext/react/-/react-7.0.1.tgz",
++      "integrity": "sha512-NMedRgByZMSbV6dA7tdM6Jom4J/AfV7xIXcZk3kQMs8bCq6faeY9GbjtgYIYsomdjXvNsVIVx3PXvVPpiUa7mA==",
+       "license": "MIT",
+       "dependencies": {
+-        "@portabletext/toolkit": "^3.0.1",
+-        "@portabletext/types": "^2.0.15"
++        "@portabletext/toolkit": "^5.0.2",
++        "@portabletext/types": "^4.0.2"
+       },
+       "engines": {
+-        "node": "^14.13.1 || >=16.0.0"
++        "node": ">=20.19 <22 || >=22.12"
+       },
+       "peerDependencies": {
+-        "react": "^18.2 || ^19"
++        "react": "^19"
+       }
+     },
+     "node_modules/@portabletext/sanity-bridge": {
+@@ -4975,7 +4955,7 @@
+         "node": ">=20.19 <22 || >=22.12"
+       }
+     },
+-    "node_modules/@portabletext/to-html/node_modules/@portabletext/toolkit": {
++    "node_modules/@portabletext/toolkit": {
+       "version": "5.0.2",
+       "resolved": "https://registry.npmjs.org/@portabletext/toolkit/-/toolkit-5.0.2.tgz",
+       "integrity": "sha512-Njc1LE1PMJkTx/wEPqZ6sOWGgFgX2B47fxpOQ/Ia4ByhsZoA5Sq8dNvvV5F052j/xE8TbOLiBEjS848FkKADDQ==",
+@@ -4987,7 +4967,7 @@
+         "node": ">=20.19 <22 || >=22.12"
+       }
+     },
+-    "node_modules/@portabletext/to-html/node_modules/@portabletext/types": {
++    "node_modules/@portabletext/types": {
+       "version": "4.0.2",
+       "resolved": "https://registry.npmjs.org/@portabletext/types/-/types-4.0.2.tgz",
+       "integrity": "sha512-djfIGU9n6DRrunlvj2nIDAp17URo/nA4jSXGvf+Gupx8NLLy9fmJBZ3GL8yhqn9lSVc+cKCharjOa3aOBnWbRw==",
+@@ -4996,27 +4976,6 @@
+         "node": ">=20.19 <22 || >=22.12"
+       }
+     },
+-    "node_modules/@portabletext/toolkit": {
+-      "version": "3.0.3",
+-      "resolved": "https://registry.npmjs.org/@portabletext/toolkit/-/toolkit-3.0.3.tgz",
+-      "integrity": "sha512-EI59/l4E0E5wCyWUzvW1FPKWfqDsbebCnCf9ZDHjXGH95X4EORlCtnPuA79PpKaHv0LTChORy55trRzW6tYnOQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "@portabletext/types": "^2.0.15"
+-      },
+-      "engines": {
+-        "node": "^14.13.1 || >=16.0.0"
+-      }
+-    },
+-    "node_modules/@portabletext/types": {
+-      "version": "2.0.15",
+-      "resolved": "https://registry.npmjs.org/@portabletext/types/-/types-2.0.15.tgz",
+-      "integrity": "sha512-2e6i2gSQsrA/5OL5Gm4/9bxB9MNO73Fa47zj+0mT93xkoQUCGCWX5fZh1YBJ86hszaRYlqvqG08oULxvvPPp/Q==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": "^14.13.1 || >=16.0.0 || >=18.0.0"
+-      }
+-    },
+     "node_modules/@rexxars/react-json-inspector": {
+       "version": "9.0.1",
+       "resolved": "https://registry.npmjs.org/@rexxars/react-json-inspector/-/react-json-inspector-9.0.1.tgz",
+@@ -14961,6 +14920,43 @@
+         "styled-components": "^6.1"
+       }
+     },
++    "node_modules/next-sanity/node_modules/@portabletext/react": {
++      "version": "4.0.3",
++      "resolved": "https://registry.npmjs.org/@portabletext/react/-/react-4.0.3.tgz",
++      "integrity": "sha512-sdVSXbi0L5MBVb1Ch5KwbBPZjW/Oqe6s5ZkPi4LcItzHl8rqY2jB0VxsFaGywZyn8Jc47cGLaOtyBM9HkW/9Hg==",
++      "license": "MIT",
++      "dependencies": {
++        "@portabletext/toolkit": "^3.0.1",
++        "@portabletext/types": "^2.0.15"
++      },
++      "engines": {
++        "node": "^14.13.1 || >=16.0.0"
++      },
++      "peerDependencies": {
++        "react": "^18.2 || ^19"
++      }
++    },
++    "node_modules/next-sanity/node_modules/@portabletext/toolkit": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/@portabletext/toolkit/-/toolkit-3.0.3.tgz",
++      "integrity": "sha512-EI59/l4E0E5wCyWUzvW1FPKWfqDsbebCnCf9ZDHjXGH95X4EORlCtnPuA79PpKaHv0LTChORy55trRzW6tYnOQ==",
++      "license": "MIT",
++      "dependencies": {
++        "@portabletext/types": "^2.0.15"
++      },
++      "engines": {
++        "node": "^14.13.1 || >=16.0.0"
++      }
++    },
++    "node_modules/next-sanity/node_modules/@portabletext/types": {
++      "version": "2.0.15",
++      "resolved": "https://registry.npmjs.org/@portabletext/types/-/types-2.0.15.tgz",
++      "integrity": "sha512-2e6i2gSQsrA/5OL5Gm4/9bxB9MNO73Fa47zj+0mT93xkoQUCGCWX5fZh1YBJ86hszaRYlqvqG08oULxvvPPp/Q==",
++      "license": "MIT",
++      "engines": {
++        "node": "^14.13.1 || >=16.0.0 || >=18.0.0"
++      }
++    },
+     "node_modules/next-sanity/node_modules/@sanity/insert-menu": {
+       "version": "2.1.0",
+       "resolved": "https://registry.npmjs.org/@sanity/insert-menu/-/insert-menu-2.1.0.tgz",
+@@ -17306,27 +17302,6 @@
+         "react": "^18.2 || ^19"
+       }
+     },
+-    "node_modules/sanity/node_modules/@portabletext/toolkit": {
+-      "version": "5.0.2",
+-      "resolved": "https://registry.npmjs.org/@portabletext/toolkit/-/toolkit-5.0.2.tgz",
+-      "integrity": "sha512-Njc1LE1PMJkTx/wEPqZ6sOWGgFgX2B47fxpOQ/Ia4ByhsZoA5Sq8dNvvV5F052j/xE8TbOLiBEjS848FkKADDQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "@portabletext/types": "^4.0.2"
+-      },
+-      "engines": {
+-        "node": ">=20.19 <22 || >=22.12"
+-      }
+-    },
+-    "node_modules/sanity/node_modules/@portabletext/types": {
+-      "version": "4.0.2",
+-      "resolved": "https://registry.npmjs.org/@portabletext/types/-/types-4.0.2.tgz",
+-      "integrity": "sha512-djfIGU9n6DRrunlvj2nIDAp17URo/nA4jSXGvf+Gupx8NLLy9fmJBZ3GL8yhqn9lSVc+cKCharjOa3aOBnWbRw==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=20.19 <22 || >=22.12"
+-      }
+-    },
+     "node_modules/sanity/node_modules/@sanity/comlink": {
+       "version": "4.0.1",
+       "resolved": "https://registry.npmjs.org/@sanity/comlink/-/comlink-4.0.1.tgz",
+diff --git a/package.json b/package.json
+index 1cbbe64..f98a06c 100644
+--- a/package.json
++++ b/package.json
+@@ -11,6 +11,7 @@
+   },
+   "dependencies": {
+     "@next/third-parties": "^15.5.22",
++    "@portabletext/react": "^7.0.1",
+     "@sanity/client": "^7.26.0",
+     "@sanity/image-url": "^2.1.1",
+     "@sanity/vision": "^4.22.0",
+diff --git a/sanity/schemaTypes/documents/contactInfo.ts b/sanity/schemaTypes/documents/contactInfo.ts
+index 5454203..4ec7d0f 100644
+--- a/sanity/schemaTypes/documents/contactInfo.ts
++++ b/sanity/schemaTypes/documents/contactInfo.ts
+@@ -33,8 +33,7 @@ export default defineType({
+     defineField({
+       name: 'contactCtaText',
+       title: 'Contact CTA-tekst',
+-      type: 'text',
+-      rows: 2,
++      type: 'portableText',
+       description: 'Bijv. de zin boven de contactknoppen in de CTA-sectie.',
+     }),
+   ],
+diff --git a/sanity/schemaTypes/documents/homepage.ts b/sanity/schemaTypes/documents/homepage.ts
+index 236a437..619c3c4 100644
+--- a/sanity/schemaTypes/documents/homepage.ts
++++ b/sanity/schemaTypes/documents/homepage.ts
+@@ -46,8 +46,7 @@ export default defineType({
+     defineField({
+       name: 'heroSubtitle',
+       title: 'Hero-subtitel / intro-tekst',
+-      type: 'text',
+-      rows: 3,
++      type: 'portableText',
+       group: 'hero',
+       validation: (Rule) => Rule.required(),
+     }),
+@@ -98,9 +97,10 @@ export default defineType({
+     defineField({
+       name: 'positioningParagraphs',
+       title: 'Tekstblokken',
+-      type: 'array',
+-      of: [{ type: 'text', rows: 3 }],
++      type: 'portableText',
+       group: 'positioning',
++      description:
++        'Eén rich-text veld — gebruik een lege regel voor een nieuwe paragraaf, of Shift+Enter voor een regelafbreking binnen dezelfde paragraaf.',
+     }),
+ 
+     // ---------- APPROACH ("Wat je krijgt") ----------
+@@ -114,8 +114,7 @@ export default defineType({
+     defineField({
+       name: 'approachIntro',
+       title: 'Introductietekst',
+-      type: 'text',
+-      rows: 2,
++      type: 'portableText',
+       group: 'approach',
+     }),
+     defineField({
+@@ -130,7 +129,7 @@ export default defineType({
+           fields: [
+             defineField({ name: 'tag', title: 'Label (kleine tag)', type: 'string' }),
+             defineField({ name: 'title', title: 'Titel', type: 'string' }),
+-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
++            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
+           ],
+           preview: {
+             select: { title: 'title', subtitle: 'tag' },
+@@ -166,8 +165,7 @@ export default defineType({
+     defineField({
+       name: 'frameworkIntro',
+       title: 'Introductietekst',
+-      type: 'text',
+-      rows: 2,
++      type: 'portableText',
+       group: 'framework',
+     }),
+     defineField({
+@@ -181,7 +179,7 @@ export default defineType({
+           name: 'frameworkStep',
+           fields: [
+             defineField({ name: 'title', title: 'Titel', type: 'string' }),
+-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
++            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
+           ],
+           preview: {
+             select: { title: 'title' },
+@@ -192,9 +190,22 @@ export default defineType({
+     defineField({
+       name: 'frameworkLoopNote',
+       title: 'Loop-notitie onderaan',
+-      type: 'string',
++      type: 'portableText',
+       group: 'framework',
+-      initialValue: 'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.',
++      initialValue: () => [
++        {
++          _type: 'block',
++          style: 'normal',
++          markDefs: [],
++          children: [
++            {
++              _type: 'span',
++              text: 'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.',
++              marks: [],
++            },
++          ],
++        },
++      ],
+     }),
+ 
+     // ---------- PROCESS ----------
+@@ -223,7 +234,7 @@ export default defineType({
+           name: 'processStep',
+           fields: [
+             defineField({ name: 'title', title: 'Titel', type: 'string' }),
+-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
++            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
+           ],
+           preview: { select: { title: 'title' } },
+         },
+@@ -248,9 +259,10 @@ export default defineType({
+     defineField({
+       name: 'aboutParagraphs',
+       title: 'Tekstblokken',
+-      type: 'array',
+-      of: [{ type: 'text', rows: 3 }],
++      type: 'portableText',
+       group: 'about',
++      description:
++        'Eén rich-text veld — gebruik een lege regel voor een nieuwe paragraaf, of Shift+Enter voor een regelafbreking binnen dezelfde paragraaf.',
+     }),
+     defineField({
+       name: 'aboutPhoto',
+@@ -296,8 +308,7 @@ export default defineType({
+     defineField({
+       name: 'ctaBody',
+       title: 'Tekst',
+-      type: 'text',
+-      rows: 2,
++      type: 'portableText',
+       group: 'cta',
+     }),
+     defineField({
+diff --git a/sanity/schemaTypes/documents/service.ts b/sanity/schemaTypes/documents/service.ts
+index 89731c3..e5ecb52 100644
+--- a/sanity/schemaTypes/documents/service.ts
++++ b/sanity/schemaTypes/documents/service.ts
+@@ -14,8 +14,7 @@ export default defineType({
+     defineField({
+       name: 'description',
+       title: 'Omschrijving',
+-      type: 'text',
+-      rows: 3,
++      type: 'portableText',
+     }),
+     defineField({
+       name: 'icon',
+diff --git a/sanity/schemaTypes/documents/testimonial.ts b/sanity/schemaTypes/documents/testimonial.ts
+index 9f91373..c420710 100644
+--- a/sanity/schemaTypes/documents/testimonial.ts
++++ b/sanity/schemaTypes/documents/testimonial.ts
+@@ -24,8 +24,7 @@ export default defineType({
+     defineField({
+       name: 'testimonial',
+       title: 'Testimonial-tekst',
+-      type: 'text',
+-      rows: 4,
++      type: 'portableText',
+       validation: (Rule) => Rule.required(),
+     }),
+     defineField({
+diff --git a/sanity/schemaTypes/index.ts b/sanity/schemaTypes/index.ts
+index dc6ffb9..44fbb3b 100644
+--- a/sanity/schemaTypes/index.ts
++++ b/sanity/schemaTypes/index.ts
+@@ -5,6 +5,7 @@ import seo from './objects/seo';
+ import ctaButton from './objects/ctaButton';
+ import socialLink from './objects/socialLink';
+ import projectVideo from './objects/projectVideo';
++import portableText from './objects/portableText';
+ 
+ // documents (eigen entries in de Studio)
+ import homepage from './documents/homepage';
+@@ -21,6 +22,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
+     ctaButton,
+     socialLink,
+     projectVideo,
++    portableText,
+     // documents
+     homepage,
+     portfolioProject,
+diff --git a/sanity/schemaTypes/objects/portableText.ts b/sanity/schemaTypes/objects/portableText.ts
+new file mode 100644
+index 0000000..5365bb5
+--- /dev/null
++++ b/sanity/schemaTypes/objects/portableText.ts
+@@ -0,0 +1,116 @@
++import { defineArrayMember, defineField, defineType } from 'sanity';
++
++// ============================================================
++// DE centrale Portable Text-configuratie. Elk veld dat rich text
++// moet ondersteunen (Hero-beschrijving, About-tekst, service-
++// omschrijvingen, testimonials, enz.) gebruikt dit ene, herbruikbare
++// type — geen losse Portable Text-definitie per veld.
++//
++// Dit is de officiële Sanity-aanpak: een array van blocks, met de
++// standaard `type: 'block'` array-member. Geen custom parser, geen
++// markdown — Sanity's ingebouwde rich-text editor regelt alles
++// (inclusief harde regelafbrekingen met Shift+Enter binnen dezelfde
++// paragraaf, en een nieuwe paragraaf met gewone Enter).
++//
++// Toekomstige uitbreidingen (afbeeldingen, video's, knoppen,
++// callouts, FAQ-blokken, cards, tabellen) worden later toegevoegd
++// als extra `defineArrayMember`-items in de `of`-array hieronder —
++// dat is exact het uitbreidingspunt waar dat gebeurt. Nu bewust
++// leeg gelaten; alleen tekst-blocks worden nu ondersteund.
++// ============================================================
++export default defineType({
++  name: 'portableText',
++  title: 'Tekst (met opmaak)',
++  type: 'array',
++  of: [
++    defineArrayMember({
++      type: 'block',
++      // ---------- Paragraaf-stijlen ----------
++      // Heading 2/3 worden nu nog nergens gebruikt in de bestaande
++      // secties (die hebben hun eigen koppen, los van Portable Text
++      // — zie de toelichting in homepage.ts bij de titel-velden).
++      // Ze staan wél alvast klaar voor toekomstige content zoals
++      // FAQ's, blogartikelen of nieuwe pagina's.
++      styles: [
++        { title: 'Normaal', value: 'normal' },
++        { title: 'Heading 2', value: 'h2' },
++        { title: 'Heading 3', value: 'h3' },
++        { title: 'Quote', value: 'blockquote' },
++      ],
++      // ---------- Lijsten ----------
++      lists: [
++        { title: 'Opsomming', value: 'bullet' },
++        { title: 'Genummerde lijst', value: 'number' },
++      ],
++      marks: {
++        // ---------- Decorators (aan/uit-opmaak, geen extra data) ----------
++        decorators: [
++          { title: 'Vet', value: 'strong' },
++          { title: 'Cursief', value: 'em' },
++          { title: 'Brand Highlight', value: 'brandHighlight' },
++        ],
++        // ---------- Annotations (opmaak met extra data, zoals links) ----------
++        annotations: [
++          defineField({
++            name: 'link',
++            title: 'Link',
++            type: 'object',
++            fields: [
++              defineField({
++                name: 'linkType',
++                title: 'Type link',
++                type: 'string',
++                options: {
++                  list: [
++                    { title: 'Intern (anker op deze pagina)', value: 'internal' },
++                    { title: 'Extern', value: 'external' },
++                  ],
++                  layout: 'radio',
++                },
++                initialValue: 'external',
++              }),
++              defineField({
++                name: 'href',
++                title: 'URL',
++                type: 'url',
++                description: 'Bijv. https://www.instagram.com/antera.agency',
++                hidden: ({ parent }) => parent?.linkType !== 'external',
++                validation: (Rule) =>
++                  Rule.custom((value, context) => {
++                    const parent = context.parent as { linkType?: string } | undefined;
++                    if (parent?.linkType === 'external' && !value) {
++                      return 'Verplicht bij een externe link';
++                    }
++                    return true;
++                  }),
++              }),
++              defineField({
++                name: 'anchor',
++                title: 'Anker op deze pagina',
++                type: 'string',
++                description:
++                  'Bijv. #portfolio, #framework of #contact — de site is een one-page site, dus interne links wijzen altijd naar een sectie op dezelfde pagina, niet naar een aparte pagina.',
++                hidden: ({ parent }) => parent?.linkType !== 'internal',
++                validation: (Rule) =>
++                  Rule.custom((value, context) => {
++                    const parent = context.parent as { linkType?: string } | undefined;
++                    if (parent?.linkType === 'internal') {
++                      if (!value) return 'Verplicht bij een interne link';
++                      if (!value.startsWith('#')) return 'Moet beginnen met # (bijv. #portfolio)';
++                    }
++                    return true;
++                  }),
++              }),
++              defineField({
++                name: 'openInNewTab',
++                title: 'Open in nieuw tabblad',
++                type: 'boolean',
++                initialValue: false,
++              }),
++            ],
++          }),
++        ],
++      },
++    }),
++  ],
++});
+diff --git a/src/components/About.tsx b/src/components/About.tsx
+index 7abebc3..3cf3caa 100644
+--- a/src/components/About.tsx
++++ b/src/components/About.tsx
+@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
+ import { urlFor } from '@/sanity/image';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './About.module.css';
+ 
+@@ -77,6 +78,32 @@ export default function About({ data }: { data: HomepageData }) {
+         }
+       );
+     });
++
++    // Aparte marker (niet "fade") voor de Portable Text-wrapper om
++    // aboutParagraphs: die bevat nu mogelijk meerdere paragrafen in
++    // één veld, dus we targeten de individuele <p>-tags daarbinnen
++    // in plaats van de wrapper als geheel — exact hetzelfde
++    // staggered animatiegedrag als voorheen met losse <p>-elementen,
++    // zonder dat de wrapper zelf óók nog een eigen fade-tween krijgt
++    // (dat zou dubbelop gaan met de fade van elke paragraaf erin).
++    gsap.utils.toArray<HTMLElement>('[data-about="fade-paragraphs"] p').forEach((el) => {
++      gsap.fromTo(
++        el,
++        { opacity: 0, y: 28, filter: 'blur(6px)' },
++        {
++          opacity: 1,
++          y: 0,
++          filter: 'blur(0px)',
++          duration: 1,
++          ease: 'power3.out',
++          scrollTrigger: {
++            trigger: el,
++            start: 'top 88%',
++            toggleActions: 'play none none none',
++          },
++        }
++      );
++    });
+   }, []);
+ 
+   return (
+@@ -103,11 +130,13 @@ export default function About({ data }: { data: HomepageData }) {
+           <h2 className={`display ${styles.title}`} data-about="fade">
+             {data.aboutTitle}
+           </h2>
+-          {(data.aboutParagraphs ?? []).map((para, i) => (
+-            <p className={styles.body} data-about="fade" key={i}>
+-              {para}
+-            </p>
+-          ))}
++          {(data.aboutParagraphs ?? []).length > 0 && (
++            <PortableTextRenderer
++              value={data.aboutParagraphs}
++              className={styles.body}
++              data-about="fade-paragraphs"
++            />
++          )}
+           <div className={styles.stats} data-about="fade">
+             {(data.aboutStats ?? []).map((stat, i) => (
+               <div key={i}>
+diff --git a/src/components/Approach.tsx b/src/components/Approach.tsx
+index c3a1a41..dd870ff 100644
+--- a/src/components/Approach.tsx
++++ b/src/components/Approach.tsx
+@@ -4,6 +4,7 @@ import { useRef } from 'react';
+ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './Approach.module.css';
+ 
+@@ -165,9 +166,11 @@ export default function Approach({ data }: { data: HomepageData }) {
+ 
+       <div className={`wrap ${styles.approachHeader}`} data-approach="header">
+         <h2 className={`display ${styles.title}`}>{data.approachTitle}</h2>
+-        <p className={styles.intro} data-approach="intro">
+-          {data.approachIntro}
+-        </p>
++        <PortableTextRenderer
++          value={data.approachIntro}
++          className={styles.intro}
++          data-approach="intro"
++        />
+       </div>
+ 
+       <div className={styles.stage} ref={stageRef}>
+@@ -185,7 +188,7 @@ export default function Approach({ data }: { data: HomepageData }) {
+                 <span className={styles.accentLine} />
+                 <span className={styles.tag}>{panel.tag}</span>
+                 <h3 className={`display ${styles.panelTitle}`}>{panel.title}</h3>
+-                <p className={styles.panelBody}>{panel.body}</p>
++                <PortableTextRenderer value={panel.body} className={styles.panelBody} />
+               </div>
+             ))}
+           </div>
+diff --git a/src/components/CTA.tsx b/src/components/CTA.tsx
+index e1ff7bd..a466c3c 100644
+--- a/src/components/CTA.tsx
++++ b/src/components/CTA.tsx
+@@ -6,6 +6,7 @@ import { useRef } from 'react';
+ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData, ContactInfoData } from '@/sanity/types';
+ import styles from './CTA.module.css';
+ 
+@@ -106,9 +107,7 @@ export default function CTA({
+     lineInnerClassName: styles.lineInner,
+   })}
+ </h2>
+-        <p className={styles.body} data-cta="fade">
+-          {data.ctaBody}
+-        </p>
++        <PortableTextRenderer value={data.ctaBody} className={styles.body} data-cta="fade" />
+         <div className={styles.buttons} data-cta="fade">
+           {/* BEWERKEN: knoppen + links worden beheerd via Sanity (Homepage → Call to action → Knoppen) */}
+           {(data.ctaButtons ?? []).map((btn) => (
+diff --git a/src/components/Framework.tsx b/src/components/Framework.tsx
+index 9a6b625..f5bc3eb 100644
+--- a/src/components/Framework.tsx
++++ b/src/components/Framework.tsx
+@@ -4,6 +4,7 @@ import { useRef } from 'react';
+ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './Framework.module.css';
+ 
+@@ -111,7 +112,7 @@ export default function Framework({ data }: { data: HomepageData }) {
+             titleText
+           )}
+         </h2>
+-        <p className={styles.intro}>{data.frameworkIntro}</p>
++        <PortableTextRenderer value={data.frameworkIntro} className={styles.intro} />
+       </div>
+ 
+       <div className={styles.stage} ref={stageRef}>
+@@ -131,7 +132,7 @@ export default function Framework({ data }: { data: HomepageData }) {
+               >
+                 <div className={styles.panelNum}>{step.n}</div>
+                 <h3 className={`display ${styles.panelTitle}`}>{step.title}</h3>
+-                <p className={styles.panelBody}>{step.body}</p>
++                <PortableTextRenderer value={step.body} className={styles.panelBody} />
+               </div>
+             ))}
+           </div>
+@@ -140,7 +141,8 @@ export default function Framework({ data }: { data: HomepageData }) {
+ 
+       <div className="wrap">
+         <div className={styles.loopNote}>
+-          <span>↻</span> {data.frameworkLoopNote}
++          <span>↻</span>
++          <PortableTextRenderer value={data.frameworkLoopNote} />
+         </div>
+       </div>
+     </section>
+diff --git a/src/components/Hero.tsx b/src/components/Hero.tsx
+index 6b4546b..1851b1a 100644
+--- a/src/components/Hero.tsx
++++ b/src/components/Hero.tsx
+@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
+ import { splitTitleLines } from '@/lib/splitTitleLines';
+ import ProjectVideoPlayer from './ProjectVideoPlayer';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './Hero.module.css';
+ 
+@@ -183,9 +184,11 @@ export default function Hero({ data }: { data: HomepageData }) {
+           <h1 className={`display ${styles.heroTitle}`} data-hero="title">
+             {titleLines}
+           </h1>
+-          <p className={styles.heroPara} data-hero="para">
+-            {data.heroSubtitle}
+-          </p>
++          <PortableTextRenderer
++            value={data.heroSubtitle}
++            className={styles.heroPara}
++            data-hero="para"
++          />
+           <div className={styles.heroActions} data-hero="actions">
+             {(data.heroButtons ?? []).map((btn) => (
+               <a
+diff --git a/src/components/PortableText/blocks.tsx b/src/components/PortableText/blocks.tsx
+new file mode 100644
+index 0000000..2c6892c
+--- /dev/null
++++ b/src/components/PortableText/blocks.tsx
+@@ -0,0 +1,16 @@
++import type { PortableTextComponents } from '@portabletext/react';
++import styles from '../PortableTextRenderer.module.css';
++
++// ============================================================
++// "Blocks" zijn de paragraaf-stijlen (styles.value in het schema).
++// Normal en Quote worden nu gebruikt op de site; Heading 2/3 staan
++// klaar voor toekomstige content (FAQ's, blogartikelen, nieuwe
++// pagina's) zonder dat de architectuur dan aangepast hoeft te
++// worden — zie sanity/schemaTypes/objects/portableText.ts.
++// ============================================================
++export const block: PortableTextComponents['block'] = {
++  normal: ({ children }) => <p className={styles.paragraph}>{children}</p>,
++  h2: ({ children }) => <h2 className={styles.h2}>{children}</h2>,
++  h3: ({ children }) => <h3 className={styles.h3}>{children}</h3>,
++  blockquote: ({ children }) => <blockquote className={styles.quote}>{children}</blockquote>,
++};
+diff --git a/src/components/PortableText/index.tsx b/src/components/PortableText/index.tsx
+new file mode 100644
+index 0000000..c1feb7e
+--- /dev/null
++++ b/src/components/PortableText/index.tsx
+@@ -0,0 +1,40 @@
++import type { PortableTextComponents } from '@portabletext/react';
++import { marks } from './marks';
++import { block } from './blocks';
++import { list, listItem } from './lists';
++
++// ============================================================
++// Brengt marks/blocks/lists samen tot één components-object dat
++// @portabletext/react verwacht. Dit is de enige plek die dat
++// samenvoegen doet — marks.tsx, blocks.tsx en lists.tsx blijven
++// onafhankelijk van elkaar en van hoe ze straks gecombineerd worden.
++//
++// ---------- Uitbreidingspunt voor de toekomst ----------
++// `types` is waar @portabletext/react custom object-blocks binnen
++// de tekst rendert — dat zijn geen inline marks, maar hele blokken
++// tussen paragrafen (zoals een losstaande afbeelding, video, knop,
++// callout, FAQ-blok, card, of tabel).
++//
++// Nu bewust leeg: er zijn nog geen custom block-types nodig. Om er
++// later een toe te voegen (bijv. een "callout"):
++//   1. In sanity/schemaTypes/objects/portableText.ts: voeg een
++//      nieuw defineArrayMember({ type: 'callout', ... }) toe aan
++//      de `of`-array, naast het bestaande block-type.
++//   2. Maak sanity/schemaTypes/objects/calloutBlock.ts met het
++//      schema van dat blok.
++//   3. Maak src/components/PortableText/blocks/CalloutBlock.tsx
++//      (of vergelijkbaar) met de React-weergave.
++//   4. Registreer 'm hier: types: { callout: CalloutBlock }.
++// Verder hoeft niets aangepast te worden — alle velden die het
++// centrale `portableText`-schema gebruiken krijgen de uitbreiding
++// automatisch.
++// ============================================================
++export const components: PortableTextComponents = {
++  marks,
++  block,
++  list,
++  listItem,
++  types: {
++    // Nog leeg — zie toelichting hierboven.
++  },
++};
+diff --git a/src/components/PortableText/lists.tsx b/src/components/PortableText/lists.tsx
+new file mode 100644
+index 0000000..29fbad8
+--- /dev/null
++++ b/src/components/PortableText/lists.tsx
+@@ -0,0 +1,16 @@
++import type { PortableTextComponents } from '@portabletext/react';
++import styles from '../PortableTextRenderer.module.css';
++
++// ============================================================
++// Bullet- en genummerde lijsten. Simpele, semantische <ul>/<ol>
++// zonder afwijkende opmaak.
++// ============================================================
++export const list: PortableTextComponents['list'] = {
++  bullet: ({ children }) => <ul className={styles.bulletList}>{children}</ul>,
++  number: ({ children }) => <ol className={styles.numberList}>{children}</ol>,
++};
++
++export const listItem: PortableTextComponents['listItem'] = {
++  bullet: ({ children }) => <li className={styles.listItem}>{children}</li>,
++  number: ({ children }) => <li className={styles.listItem}>{children}</li>,
++};
+diff --git a/src/components/PortableText/marks.tsx b/src/components/PortableText/marks.tsx
+new file mode 100644
+index 0000000..672fcf4
+--- /dev/null
++++ b/src/components/PortableText/marks.tsx
+@@ -0,0 +1,47 @@
++import type { PortableTextComponents } from '@portabletext/react';
++import type { LinkAnnotationValue } from './types';
++import styles from '../PortableTextRenderer.module.css';
++
++// ============================================================
++// "Marks" zijn inline-opmaak: decorators (aan/uit, zoals vet en
++// cursief — geen extra data) en annotations (opmaak mét extra
++// data, zoals een link met een URL). Beide staan hier samen omdat
++// ze in Portable Text hetzelfde concept zijn (marks op een span).
++//
++// Bewust WEL: Bold, Italic, Brand Highlight, Link.
++// Bewust NIET: Underline — wordt op websites vrijwel altijd
++// geassocieerd met hyperlinks, dus weggelaten om verwarring te
++// voorkomen (expliciete keuze, geen omissie).
++// ============================================================
++export const marks: PortableTextComponents['marks'] = {
++  strong: ({ children }) => <strong>{children}</strong>,
++  em: ({ children }) => <em>{children}</em>,
++
++  // Alleen tekstkleur (via de bestaande --yellow variabele, zie
++  // PortableTextRenderer.module.css) — geen achtergrond, font-weight
++  // blijft ongemoeid, en omdat het een simpele <span> is blijft het
++  // vanzelf responsive en toegankelijk (geen extra ARIA nodig, het
++  // is puur visuele nadruk zoals vet/cursief dat ook zijn).
++  brandHighlight: ({ children }) => <span className={styles.brandHighlight}>{children}</span>,
++
++  link: ({ value, children }) => {
++    const link = value as LinkAnnotationValue | undefined;
++    if (!link) return <>{children}</>;
++
++    const isInternal = link.linkType === 'internal';
++    const href = isInternal ? link.anchor : link.href;
++
++    if (!href) return <>{children}</>;
++
++    return (
++      <a
++        href={href}
++        className={styles.link}
++        target={link.openInNewTab ? '_blank' : undefined}
++        rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
++      >
++        {children}
++      </a>
++    );
++  },
++};
+diff --git a/src/components/PortableText/types.tsx b/src/components/PortableText/types.tsx
+new file mode 100644
+index 0000000..b49eee8
+--- /dev/null
++++ b/src/components/PortableText/types.tsx
+@@ -0,0 +1,23 @@
++import type { PortableTextBlock } from '@portabletext/types';
++
++// ============================================================
++// Gedeelde types voor de hele PortableText-module. Andere
++// bestanden in deze map (marks, blocks, lists, index) en de
++// buitenste PortableTextRenderer.tsx importeren hiervandaan —
++// dit is de enige plek waar deze types gedefinieerd staan.
++// ============================================================
++
++// De waarde die elk Portable Text-veld uit Sanity aflevert. Kan
++// undefined/null zijn (veld nog niet ingevuld) of leeg — de
++// renderer moet daar netjes mee omgaan (zie PortableTextRenderer.tsx).
++export type PortableTextValue = PortableTextBlock[] | undefined | null;
++
++// Vorm van de "link"-annotatie zoals gedefinieerd in
++// sanity/schemaTypes/objects/portableText.ts. Wordt gebruikt door
++// marks.tsx om het juiste href/target op te bouwen.
++export interface LinkAnnotationValue {
++  linkType?: 'internal' | 'external';
++  href?: string;
++  anchor?: string;
++  openInNewTab?: boolean;
++}
+diff --git a/src/components/PortableTextRenderer.module.css b/src/components/PortableTextRenderer.module.css
+new file mode 100644
+index 0000000..4bc856b
+--- /dev/null
++++ b/src/components/PortableTextRenderer.module.css
+@@ -0,0 +1,87 @@
++/* ============================================================
++   Bewust minimale styling. Lettertype, -grootte, kleur en
++   line-height worden NIET hier vastgezet — die erven af van de
++   sectie die <PortableTextRenderer className="..."/> aanroept
++   (bijv. Hero's .heroPara, Positioning's .body, enz.), zodat
++   elke sectie zijn eigen bestaande typografie behoudt. Hier staat
++   alleen structurele opmaak: afstand tussen paragrafen/lijsten,
++   lijst-stijl, quote-styling, en de kop-schaal voor h2/h3 (die
++   nergens anders al een stijl hebben).
++   ============================================================ */
++
++.paragraph {
++  margin: 0 0 1em;
++  white-space: pre-line; /* laat Shift+Enter (harde regelafbreking) zichtbaar werken */
++}
++
++.paragraph:last-child {
++  margin-bottom: 0;
++}
++
++.h2,
++.h3 {
++  font-family: var(--font-display), sans-serif;
++  color: inherit;
++  line-height: 1.25;
++  margin: 1.4em 0 0.6em;
++}
++
++.h2:first-child,
++.h3:first-child {
++  margin-top: 0;
++}
++
++.h2 {
++  font-size: 1.5em;
++}
++
++.h3 {
++  font-size: 1.2em;
++}
++
++.quote {
++  margin: 1em 0;
++  padding-left: 1em;
++  border-left: 2px solid currentColor;
++  opacity: 0.85;
++  font-style: italic;
++  white-space: pre-line;
++}
++
++.bulletList,
++.numberList {
++  margin: 0 0 1em;
++  padding-left: 1.25em;
++}
++
++.bulletList:last-child,
++.numberList:last-child {
++  margin-bottom: 0;
++}
++
++.listItem {
++  margin-bottom: 0.4em;
++  white-space: pre-line;
++}
++
++.listItem:last-child {
++  margin-bottom: 0;
++}
++
++.link {
++  text-decoration: underline;
++  text-underline-offset: 0.15em;
++  color: inherit;
++}
++
++.link:hover {
++  opacity: 0.8;
++}
++
++/* De enige plek die de huisstijlkleur gebruikt — via de bestaande
++   CSS-variabele, geen losse hardcoded kleurwaarde. Verandert de
++   huisstijl ooit, dan gaat dit automatisch mee. Alleen tekstkleur,
++   geen achtergrond, font-weight blijft ongemoeid (erft af). */
++.brandHighlight {
++  color: var(--yellow);
++}
+diff --git a/src/components/PortableTextRenderer.tsx b/src/components/PortableTextRenderer.tsx
+new file mode 100644
+index 0000000..c8fd4c9
+--- /dev/null
++++ b/src/components/PortableTextRenderer.tsx
+@@ -0,0 +1,42 @@
++import { PortableText } from '@portabletext/react';
++import { components } from './PortableText';
++import type { PortableTextValue } from './PortableText/types';
++
++// ============================================================
++// DE centrale Portable Text-renderer. Elk onderdeel van de site
++// dat rich text toont, gebruikt uitsluitend dit component — nooit
++// een eigen losse renderer per sectie.
++//
++// `className` wordt op de buitenste wrapper gezet. Lettertype,
++// -grootte, kleur en line-height van de gerenderde paragrafen erven
++// daarvandaan af (zie PortableTextRenderer.module.css) — zo behoudt
++// elke sectie zijn eigen bestaande typografie, en verandert er
++// niets aan hoe de site er nu uitziet.
++//
++// Overige props (bijv. data-hero="para", gebruikt door bestaande
++// GSAP-animaties om elementen te targeten) worden doorgegeven aan
++// diezelfde wrapper — dit component rendert zelf een <div> met
++// <p>-tags erin, dus die attributen kunnen niet meer op een <p>
++// staan zoals voorheen (dat zou ongeldige, geneste HTML opleveren).
++// Door ze op de wrapper te zetten blijft elke bestaande animatie-
++// selector precies zo werken als vóór de Portable Text-conversie.
++//
++// Geeft niets terug als het veld leeg/nog niet ingevuld is, zodat
++// aanroepende componenten niet zelf op "leeg" hoeven te controleren.
++// ============================================================
++export default function PortableTextRenderer({
++  value,
++  className,
++  ...rest
++}: {
++  value: PortableTextValue;
++  className?: string;
++} & React.HTMLAttributes<HTMLDivElement>) {
++  if (!value || value.length === 0) return null;
++
++  return (
++    <div className={className} {...rest}>
++      <PortableText value={value} components={components} />
++    </div>
++  );
++}
+diff --git a/src/components/Positioning.tsx b/src/components/Positioning.tsx
+index 2884fd9..1d6032f 100644
+--- a/src/components/Positioning.tsx
++++ b/src/components/Positioning.tsx
+@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
+ import { splitTitleLines } from '@/lib/splitTitleLines';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './Positioning.module.css';
+ 
+@@ -46,7 +47,12 @@ export default function Positioning({ data }: { data: HomepageData }) {
+       }
+     );
+ 
+-    gsap.utils.toArray<HTMLElement>('[data-pos="para"]').forEach((el) => {
++    // `data-pos="para"` staat nu op de Portable Text-wrapper (één
++    // veld kan meerdere paragrafen bevatten); de selector target
++    // de individuele <p>-tags daarbinnen, zodat elke paragraaf nog
++    // steeds zijn eigen onafhankelijke scroll-animatie krijgt —
++    // exact hetzelfde gedrag als voorheen met losse <p>-elementen.
++    gsap.utils.toArray<HTMLElement>('[data-pos="para"] p').forEach((el) => {
+       gsap.fromTo(
+         el,
+         { opacity: 0, y: 28, filter: 'blur(6px)' },
+@@ -81,11 +87,11 @@ export default function Positioning({ data }: { data: HomepageData }) {
+           {data.positioningEyebrow}
+         </div>
+         <h2 className={`display ${styles.title}`}>{titleLines}</h2>
+-        {(data.positioningParagraphs ?? []).map((para, i) => (
+-          <p className={styles.body} data-pos="para" key={i}>
+-            {para}
+-          </p>
+-        ))}
++        <PortableTextRenderer
++          value={data.positioningParagraphs}
++          className={styles.body}
++          data-pos="para"
++        />
+       </div>
+     </section>
+   );
+diff --git a/src/components/Process.tsx b/src/components/Process.tsx
+index 7108f01..7e4553c 100644
+--- a/src/components/Process.tsx
++++ b/src/components/Process.tsx
+@@ -4,6 +4,7 @@ import { useRef } from 'react';
+ import { gsap } from 'gsap';
+ import { ScrollTrigger } from 'gsap/ScrollTrigger';
+ import { useGsapContext } from '@/hooks/useGsapContext';
++import PortableTextRenderer from './PortableTextRenderer';
+ import type { HomepageData } from '@/sanity/types';
+ import styles from './Process.module.css';
+ 
+@@ -82,7 +83,7 @@ export default function Process({ data }: { data: HomepageData }) {
+               </div>
+               <div>
+                 <h3 className={styles.stepTitle}>{step.title}</h3>
+-                <p className={styles.stepBody}>{step.body}</p>
++                <PortableTextRenderer value={step.body} className={styles.stepBody} />
+               </div>
+             </div>
+           ))}
+diff --git a/src/lib/portableText.ts b/src/lib/portableText.ts
+new file mode 100644
+index 0000000..baa27af
+--- /dev/null
++++ b/src/lib/portableText.ts
+@@ -0,0 +1,55 @@
++import type { PortableTextBlock } from '@portabletext/types';
++
++// ============================================================
++// Zet platte tekst om naar geldige Portable Text-blokken, zonder
++// dat de tekst zelf verandert — geen opmaak wordt toegevoegd, er
++// wordt alleen een minimaal geldig blok omheen gebouwd (één
++// paragraaf-stijl "normal", één span zonder marks).
++//
++// Gebruikt door:
++// - src/sanity/fallback.ts (de statische standaardtekst moet
++//   hetzelfde type hebben als wat Sanity nu aflevert)
++// - het migratiescript in Fase 2 (bestaande platte-tekst-velden
++//   omzetten zonder de inhoud te wijzigen)
++//
++// Keys zijn deterministisch (op basis van positie), niet
++// willekeurig — dat voorkomt een mismatch tussen wat de server en
++// de browser renderen.
++// ============================================================
++
++function makeBlock(text: string, index: number): PortableTextBlock {
++  return {
++    _type: 'block',
++    _key: `block-${index}`,
++    style: 'normal',
++    markDefs: [],
++    children: [
++      {
++        _type: 'span',
++        _key: `span-${index}`,
++        text,
++        marks: [],
++      },
++    ],
++  };
++}
++
++// Eén string → één of meerdere paragrafen. Een dubbele regel-
++// afbreking (\n\n) wordt gelezen als een nieuwe paragraaf; een
++// enkele \n blijft een harde regelafbreking binnen dezelfde
++// paragraaf (ondersteund via white-space: pre-line in de renderer).
++export function toPortableText(text: string | undefined | null): PortableTextBlock[] {
++  if (!text) return [];
++  const paragraphs = text.split('\n\n').filter(Boolean);
++  return paragraphs.map((paragraph, i) => makeBlock(paragraph, i));
++}
++
++// Array van losse paragraaf-strings (zoals de oude
++// positioningParagraphs/aboutParagraphs) → één Portable Text-veld
++// met één blok per paragraaf.
++export function paragraphsToPortableText(
++  paragraphs: string[] | undefined | null
++): PortableTextBlock[] {
++  if (!paragraphs || paragraphs.length === 0) return [];
++  return paragraphs.map((paragraph, i) => makeBlock(paragraph, i));
++}
+diff --git a/src/sanity/fallback.ts b/src/sanity/fallback.ts
+index 0730791..08e0806 100644
+--- a/src/sanity/fallback.ts
++++ b/src/sanity/fallback.ts
+@@ -5,6 +5,7 @@ import type {
+   SiteSettingsData,
+   TestimonialData,
+ } from './types';
++import { toPortableText, paragraphsToPortableText } from '@/lib/portableText';
+ 
+ // ============================================================
+ // Dit bestand bevat de huidige site-teksten als fallback. Als
+@@ -22,8 +23,9 @@ export const fallbackHomepage: HomepageData = {
+   heroTitle:
+     'Ons content framework\nlaat jouw bedrijf opvallen\nen trekt klanten aan.',
+   heroHighlightWord: 'opvallen',
+-  heroSubtitle:
+-    'Voor ambitieuze bedrijven en brands die hun social media serieus willen inzetten. Wij bouwen de strategie, filmen en posten — met een uitvoering die opvalt en een stijl die niet aanvoelt als reclame.',
++  heroSubtitle: toPortableText(
++    'Voor ambitieuze bedrijven en brands die hun social media serieus willen inzetten. Wij bouwen de strategie, filmen en posten — met een uitvoering die opvalt en een stijl die niet aanvoelt als reclame.'
++  ),
+   heroButtons: [
+     { label: 'Boek een gesprek', url: '#contact', style: 'primary' },
+     { label: 'Bekijk ons werk', url: '#portfolio', style: 'secondary' },
+@@ -32,90 +34,117 @@ export const fallbackHomepage: HomepageData = {
+   positioningEyebrow: 'WAAROM ANTERA',
+   positioningTitle: 'Content die verkoopt —\nen je online identiteit versterkt.',
+   positioningHighlight: 'identiteit versterkt.',
+-  positioningParagraphs: [
++  positioningParagraphs: paragraphsToPortableText([
+     "De meeste bedrijven kiezen één van twee kanten: dure, opgezette video's die geskipt worden — of losse, rommelige content die het merk geen recht doet.",
+     'Wij zitten daar precies tussenin. Native ritme en directheid, zodat content niet aanvoelt als reclame — maar met de compositie, het licht en de verhaallijn die een merk er groter en geloofwaardiger uit laten zien dan het gemiddelde account.',
+-  ],
++  ]),
+ 
+   approachTitle: 'Wat je krijgt',
+-  approachIntro:
+-    'Vier pijlers die samen bepalen of content alleen bekeken wordt — of ook converteert.',
++  approachIntro: toPortableText(
++    'Vier pijlers die samen bepalen of content alleen bekeken wordt — of ook converteert.'
++  ),
+   approachPanels: [
+     {
+       tag: 'Beeldtaal',
+       title: 'Cinematische afwerking',
+-      body: 'Licht, kleur en compositie die je merk premium laten ogen — zonder dat het aanvoelt als een gescripte commercial.',
++      body: toPortableText(
++        'Licht, kleur en compositie die je merk premium laten ogen — zonder dat het aanvoelt als een gescripte commercial.'
++      ),
+     },
+     {
+       tag: 'Verhaal',
+       title: 'Storytelling die blijft hangen',
+-      body: 'Geen losse clips zonder samenhang. Elke video draagt bij aan een groter verhaal dat mensen aan je merk verbindt.',
++      body: toPortableText(
++        'Geen losse clips zonder samenhang. Elke video draagt bij aan een groter verhaal dat mensen aan je merk verbindt.'
++      ),
+     },
+     {
+       tag: 'Ritme',
+       title: 'Gemaakt om niet geskipt te worden',
+-      body: 'Directe hooks, geen trage opbouw — content die native aanvoelt, ook al is de kwaliteit een niveau hoger.',
++      body: toPortableText(
++        'Directe hooks, geen trage opbouw — content die native aanvoelt, ook al is de kwaliteit een niveau hoger.'
++      ),
+     },
+     {
+       tag: 'Resultaat',
+       title: 'Gericht op klanten, niet op views',
+-      body: 'Elke keuze — van hook tot call-to-action — is erop gericht om kijkers naar klanten te bewegen.',
++      body: toPortableText(
++        'Elke keuze — van hook tot call-to-action — is erop gericht om kijkers naar klanten te bewegen.'
++      ),
+     },
+   ],
+ 
+   frameworkEyebrow: 'ONZE AANPAK',
+   frameworkTitle: 'Content Framework',
+   frameworkTitleHighlight: 'Content Framework',
+-  frameworkIntro:
+-    "Geen losse video's zonder plan. Wij werken volgens een vast framework dat zorgt dat elke stap voortbouwt op de vorige — en dat we blijven bijsturen op basis van wat werkt.",
++  frameworkIntro: toPortableText(
++    "Geen losse video's zonder plan. Wij werken volgens een vast framework dat zorgt dat elke stap voortbouwt op de vorige — en dat we blijven bijsturen op basis van wat werkt."
++  ),
+   frameworkSteps: [
+     {
+       title: 'Positionering',
+-      body: 'Wij bepalen hoe jouw merk zich onderscheidt — welk verhaal, welke toon en welke stijl bij jullie passen en opvallen tussen de rest.',
++      body: toPortableText(
++        'Wij bepalen hoe jouw merk zich onderscheidt — welk verhaal, welke toon en welke stijl bij jullie passen en opvallen tussen de rest.'
++      ),
+     },
+     {
+       title: 'Strategie',
+-      body: 'Op basis van de positionering bouwen wij een contentplan. Waar jullie vakkennis onmisbaar is, vragen wij gericht door.',
++      body: toPortableText(
++        'Op basis van de positionering bouwen wij een contentplan. Waar jullie vakkennis onmisbaar is, vragen wij gericht door.'
++      ),
+     },
+     {
+       title: 'Uitvoering',
+-      body: 'Filmen en editen volgens de gekozen richting — cinematisch waar het kan, native waar het moet.',
++      body: toPortableText(
++        'Filmen en editen volgens de gekozen richting — cinematisch waar het kan, native waar het moet.'
++      ),
+     },
+     {
+       title: 'Analyse',
+-      body: 'Wij meten wat écht werkt: welke hooks, welke onderwerpen en welke stijl het beste scoren bij jullie doelgroep.',
++      body: toPortableText(
++        'Wij meten wat écht werkt: welke hooks, welke onderwerpen en welke stijl het beste scoren bij jullie doelgroep.'
++      ),
+     },
+     {
+       title: 'Bijsturen',
+-      body: 'Op basis van de analyse sturen we de strategie opnieuw bij. Het framework is een cyclus, geen eenmalig traject.',
++      body: toPortableText(
++        'Op basis van de analyse sturen we de strategie opnieuw bij. Het framework is een cyclus, geen eenmalig traject.'
++      ),
+     },
+   ],
+-  frameworkLoopNote:
+-    'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.',
++  frameworkLoopNote: toPortableText(
++    'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.'
++  ),
+ 
+   processEyebrow: 'HOE WE SAMENWERKEN',
+   processTitle: 'Geen losse videograaf — een strategische partner.',
+   processSteps: [
+     {
+       title: 'Kennismaking',
+-      body: 'Wij bespreken jullie merk, doelen en wat er nu al werkt — of nog niet werkt — op social media.',
++      body: toPortableText(
++        'Wij bespreken jullie merk, doelen en wat er nu al werkt — of nog niet werkt — op social media.'
++      ),
+     },
+     {
+       title: 'Framework op maat',
+-      body: 'Wij zetten het content framework op voor jullie situatie: positionering, strategie en een concreet plan.',
++      body: toPortableText(
++        'Wij zetten het content framework op voor jullie situatie: positionering, strategie en een concreet plan.'
++      ),
+     },
+     {
+       title: 'Doorlopende uitvoering',
+-      body: 'Filmen, editen, posten en bijsturen — maandelijks, zodat het resultaat blijft groeien.',
++      body: toPortableText(
++        'Filmen, editen, posten en bijsturen — maandelijks, zodat het resultaat blijft groeien.'
++      ),
+     },
+   ],
+ 
+   aboutEyebrow: 'WIE ZIT HIERACHTER',
+   aboutTitle: 'ANTERA AGENCY',
+-  aboutParagraphs: [
++  aboutParagraphs: paragraphsToPortableText([
+     "ANTERA AGENCY is opgericht door Victor, geboren en opgegroeid in Tilburg. Met meer dan 8 jaar ervaring in het filmen en editen van video's ontstond de drijfveer om merken te helpen hun verhaal krachtig neer te zetten — zonder dat het als reclame voelt.",
+     'Vandaag de dag draait Victor het grootste deel van de productie zelf, en bouwen we gestaag aan een team van gespecialiseerde cameramensen en editors om samenwerkingen op te schalen zonder in te leveren op kwaliteit.',
+-  ],
++  ]),
+   aboutStats: [
+     { number: '8+', label: 'jaar ervaring' },
+     { number: 'TLB', label: 'gevestigd in Tilburg' },
+@@ -123,8 +152,9 @@ export const fallbackHomepage: HomepageData = {
+ 
+   ctaTitle: 'Klaar om jullie social media',
+   ctaHighlight: 'klanten te laten opleveren?',
+-  ctaBody:
+-    'Geen verplichtingen, geen verkooppraatje. Gewoon een gesprek over wat wel en niet werkt voor jullie merk.',
++  ctaBody: toPortableText(
++    'Geen verplichtingen, geen verkooppraatje. Gewoon een gesprek over wat wel en niet werkt voor jullie merk.'
++  ),
+   ctaButtons: [
+     { label: 'Boek een gesprek', url: '#', style: 'primary' },
+     { label: 'Stuur een e-mail', url: 'mailto:info@antera.agency', style: 'secondary' },
+diff --git a/src/sanity/types.ts b/src/sanity/types.ts
+index bc509b0..f85a688 100644
+--- a/src/sanity/types.ts
++++ b/src/sanity/types.ts
+@@ -1,4 +1,5 @@
+ import type { Image } from 'sanity';
++import type { PortableTextBlock } from '@portabletext/types';
+ 
+ export interface SanityVideo {
+   videoFile?: { asset?: { _ref?: string } } | null;
+@@ -15,17 +16,17 @@ export interface CtaButtonData {
+ export interface ApproachPanel {
+   tag?: string;
+   title?: string;
+-  body?: string;
++  body?: PortableTextBlock[];
+ }
+ 
+ export interface FrameworkStep {
+   title?: string;
+-  body?: string;
++  body?: PortableTextBlock[];
+ }
+ 
+ export interface ProcessStep {
+   title?: string;
+-  body?: string;
++  body?: PortableTextBlock[];
+ }
+ 
+ export interface AboutStat {
+@@ -44,25 +45,25 @@ export interface HomepageData {
+   heroEyebrow?: string;
+   heroTitle?: string;
+   heroHighlightWord?: string;
+-  heroSubtitle?: string;
++  heroSubtitle?: PortableTextBlock[];
+   heroButtons?: CtaButtonData[];
+   heroVideo?: SanityVideo;
+ 
+   positioningEyebrow?: string;
+   positioningTitle?: string;
+   positioningHighlight?: string;
+-  positioningParagraphs?: string[];
++  positioningParagraphs?: PortableTextBlock[];
+ 
+   approachTitle?: string;
+-  approachIntro?: string;
++  approachIntro?: PortableTextBlock[];
+   approachPanels?: ApproachPanel[];
+ 
+   frameworkEyebrow?: string;
+   frameworkTitle?: string;
+   frameworkTitleHighlight?: string;
+-  frameworkIntro?: string;
++  frameworkIntro?: PortableTextBlock[];
+   frameworkSteps?: FrameworkStep[];
+-  frameworkLoopNote?: string;
++  frameworkLoopNote?: PortableTextBlock[];
+ 
+   processEyebrow?: string;
+   processTitle?: string;
+@@ -70,13 +71,13 @@ export interface HomepageData {
+ 
+   aboutEyebrow?: string;
+   aboutTitle?: string;
+-  aboutParagraphs?: string[];
++  aboutParagraphs?: PortableTextBlock[];
+   aboutPhoto?: Image;
+   aboutStats?: AboutStat[];
+ 
+   ctaTitle?: string;
+   ctaHighlight?: string;
+-  ctaBody?: string;
++  ctaBody?: PortableTextBlock[];
+   ctaButtons?: CtaButtonData[];
+ 
+   seo?: SeoData;
+@@ -99,7 +100,7 @@ export interface PortfolioProjectData {
+ export interface ServiceData {
+   _id: string;
+   title: string;
+-  description?: string;
++  description?: PortableTextBlock[];
+   icon?: Image;
+   order?: number;
+ }
+@@ -109,7 +110,7 @@ export interface TestimonialData {
+   name: string;
+   company?: string;
+   position?: string;
+-  testimonial: string;
++  testimonial: PortableTextBlock[];
+   profileImage?: Image;
+ }
+ 
+@@ -118,7 +119,7 @@ export interface ContactInfoData {
+   phone?: string;
+   location?: string;
+   socialLinks?: { platform: string; url: string }[];
+-  contactCtaText?: string;
++  contactCtaText?: PortableTextBlock[];
+ }
+ 
+ export interface BrandData {
+-- 
+2.43.0
+
+
+From 4e760e567d691c90c3370f260fe89f7db8f17679 Mon Sep 17 00:00:00 2001
+From: "Claude (Portable Text Fase 1)" <assistant@anteraagency.nl>
+Date: Mon, 3 Aug 2026 21:28:14 +0000
+Subject: [PATCH 2/2] Fase 1-correctie: backwards-compatibiliteitslaag + exacte
+ paragraaf-marges hersteld
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Risico bevestigd met een empirische test tegen de daadwerkelijke
+@portabletext/react-package: platte strings/string-arrays (de vorm
+waarin bestaande, nog niet gemigreerde Sanity-content nu is
+opgeslagen) renderden NIET zichtbaar — geen crash, maar wel een
+onzichtbare (display:none) foutmelding in de broncode in plaats van
+de echte tekst.
+
+Fix:
+- src/lib/portableText.ts: nieuwe normalizeToPortableText() —
+  gemarkeerd als tijdelijke, veilig-te-laten-staan compatibiliteits-
+  laag. Herkent platte string / array van strings / array van
+  blokken op basis van de daadwerkelijke runtime-vorm, en normaliseert
+  zo nodig. Na migratie herkent de functie al-gemigreerde data
+  gewoon als 'correct formaat' en geeft die ongewijzigd door — geen
+  risico op dubbele conversie.
+- src/components/PortableTextRenderer.tsx: past de normalisatie toe
+  vóór het renderen, op de ene centrale plek — alle 7 aanroepende
+  componenten profiteren hier automatisch van, zonder zelf aangepast
+  te hoeven worden.
+
+Daarnaast: exacte paragraaf-tussenruimte hersteld voor Positioning
+(18px) en About — waarbij bleek dat About's oorspronkelijke waarde
+al 14px was, niet 18px; beide zijn nu exact hun eigen oorspronkelijke
+waarde, via een gerichte CSS-override met hogere specificiteit die
+alleen deze twee secties raakt.
+
+Gevalideerd:
+- Losstaande test bevestigt: platte string/array-string-data rendert
+  nu correct via de nieuwe normalizer (geen 'Unknown block type'-
+  waarschuwing meer).
+- tsc --noEmit, eslint, npm run build slagen alle drie.
+- Homepage + /studio geverifieerd met fallback-data: content
+  zichtbaar, geen waarschuwing in de output.
+
+Nog steeds GEEN migratie uitgevoerd — dat blijft Fase 2, na
+goedkeuring.
+---
+ src/components/About.module.css         | 10 +++++
+ src/components/PortableTextRenderer.tsx | 20 +++++++--
+ src/components/Positioning.module.css   | 15 +++++++
+ src/lib/portableText.ts                 | 54 +++++++++++++++++++++++++
+ 4 files changed, 96 insertions(+), 3 deletions(-)
+
+diff --git a/src/components/About.module.css b/src/components/About.module.css
+index 279bbcb..2a25e7f 100644
+--- a/src/components/About.module.css
++++ b/src/components/About.module.css
+@@ -57,6 +57,16 @@
+   max-width: 520px;
+ }
+ 
++/* Herstelt exact de paragraaf-tussenruimte (14px, de oorspronkelijke
++   waarde van vóór de Portable Text-conversie) — zie de toelichting
++   bij dezelfde override in Positioning.module.css. */
++.body p {
++  margin-bottom: 14px;
++}
++.body p:last-child {
++  margin-bottom: 14px;
++}
++
+ .stats {
+   display: flex;
+   gap: 28px;
+diff --git a/src/components/PortableTextRenderer.tsx b/src/components/PortableTextRenderer.tsx
+index c8fd4c9..c04f48a 100644
+--- a/src/components/PortableTextRenderer.tsx
++++ b/src/components/PortableTextRenderer.tsx
+@@ -1,6 +1,7 @@
+ import { PortableText } from '@portabletext/react';
+ import { components } from './PortableText';
+ import type { PortableTextValue } from './PortableText/types';
++import { normalizeToPortableText } from '@/lib/portableText';
+ 
+ // ============================================================
+ // DE centrale Portable Text-renderer. Elk onderdeel van de site
+@@ -23,20 +24,33 @@ import type { PortableTextValue } from './PortableText/types';
+ //
+ // Geeft niets terug als het veld leeg/nog niet ingevuld is, zodat
+ // aanroepende componenten niet zelf op "leeg" hoeven te controleren.
++//
++// BELANGRIJK — tijdelijke compatibiliteit: `value` wordt eerst door
++// normalizeToPortableText() gehaald (zie src/lib/portableText.ts).
++// Zolang bestaande Sanity-documenten nog niet gemigreerd zijn (Fase
++// 2), kan deze waarde nog een platte string of array van strings
++// zijn in plaats van echte Portable Text-blokken — zonder deze stap
++// rendert @portabletext/react zo'n veld niet zichtbaar. Na de
++// migratie herkent de normalizer een al-gemigreerd veld gewoon als
++// "correct formaat" en geeft het ongewijzigd door; deze regel mag
++// dus blijven staan als defensief vangnet, of je kan 'm laten
++// vallen door normalizeToPortableText hier te vervangen door een
++// simpele `value ?? []`.
+ // ============================================================
+ export default function PortableTextRenderer({
+   value,
+   className,
+   ...rest
+ }: {
+-  value: PortableTextValue;
++  value: PortableTextValue | string | string[];
+   className?: string;
+ } & React.HTMLAttributes<HTMLDivElement>) {
+-  if (!value || value.length === 0) return null;
++  const blocks = normalizeToPortableText(value);
++  if (blocks.length === 0) return null;
+ 
+   return (
+     <div className={className} {...rest}>
+-      <PortableText value={value} components={components} />
++      <PortableText value={blocks} components={components} />
+     </div>
+   );
+ }
+diff --git a/src/components/Positioning.module.css b/src/components/Positioning.module.css
+index c89ecd7..fedd28c 100644
+--- a/src/components/Positioning.module.css
++++ b/src/components/Positioning.module.css
+@@ -36,3 +36,18 @@
+   margin-bottom: 18px;
+   max-width: 560px;
+ }
++
++/* Herstelt exact de paragraaf-tussenruimte (18px) van vóór de
++   Portable Text-conversie. De gedeelde renderer (zie
++   PortableTextRenderer.module.css) gebruikt een kleinere, em-
++   gebaseerde standaardwaarde voor herbruikbaarheid elders — deze
++   override geldt alleen hier, via hogere CSS-specificiteit, en
++   raakt geen andere sectie. Ook de laatste paragraaf behoudt zijn
++   marge (zoals voorheen — er was geen "laatste paragraaf"-
++   uitzondering in de oude, losse <p>-opzet). */
++.body p {
++  margin-bottom: 18px;
++}
++.body p:last-child {
++  margin-bottom: 18px;
++}
+diff --git a/src/lib/portableText.ts b/src/lib/portableText.ts
+index baa27af..bdebd24 100644
+--- a/src/lib/portableText.ts
++++ b/src/lib/portableText.ts
+@@ -53,3 +53,57 @@ export function paragraphsToPortableText(
+   if (!paragraphs || paragraphs.length === 0) return [];
+   return paragraphs.map((paragraph, i) => makeBlock(paragraph, i));
+ }
++
++// ============================================================
++// TIJDELIJKE COMPATIBILITEITSLAAG — te verwijderen (of gewoon te
++// laten staan als extra vangnet) zodra Fase 2 (de content-migratie)
++// is uitgevoerd en bevestigd.
++//
++// Waarom dit nodig is: de schema's zijn nu omgezet naar Portable
++// Text, maar bestaande documenten in Sanity zijn nog niet
++// gemigreerd — die bevatten dus nog gewoon platte strings (of
++// arrays van strings), niet de nieuwe blok-structuur. Zonder deze
++// laag rendert @portabletext/react zulke waarden niet als tekst,
++// maar als een onzichtbare (display:none) foutmelding in de
++// broncode — de bezoeker ziet dan gewoon een lege paragraaf in
++// plaats van de bestaande tekst.
++//
++// `normalizeToPortableText` detecteert de daadwerkelijke vorm van
++// de binnenkomende data op het moment van renderen (dus ná het
++// ophalen bij Sanity, vlak vóór het aan <PortableText> wordt
++// doorgegeven) en zet die zo nodig alsnog om:
++//   - platte string          -> toPortableText(...)
++//   - array van strings      -> paragraphsToPortableText(...)
++//   - array van blokken      -> ongewijzigd doorgegeven
++//   - leeg/onbekend          -> lege array
++//
++// Dit is een runtime-check (TypeScript-types alleen garanderen de
++// vorm die de code VERWACHT, niet wat Sanity daadwerkelijk aflevert
++// — vandaar `unknown` als brontype hier).
++//
++// VEILIG OM TE LATEN STAAN: na de migratie herkent deze functie
++// een al-gemigreerd blok gewoon als "array van blokken" en geeft
++// het ongewijzigd door — geen enkel risico op dubbele conversie.
++// ============================================================
++export function normalizeToPortableText(value: unknown): PortableTextBlock[] {
++  if (!value) return [];
++
++  if (typeof value === 'string') {
++    return toPortableText(value);
++  }
++
++  if (Array.isArray(value)) {
++    if (value.length === 0) return [];
++
++    // Array van strings (oude positioningParagraphs/aboutParagraphs-vorm)
++    if (typeof value[0] === 'string') {
++      return paragraphsToPortableText(value as string[]);
++    }
++
++    // Al een array van Portable Text-blokken — ongewijzigd doorgeven
++    return value as PortableTextBlock[];
++  }
++
++  // Onbekende vorm (zou niet moeten voorkomen) — geen crash, gewoon leeg
++  return [];
++}
+-- 
+2.43.0
+
