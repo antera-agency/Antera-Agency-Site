@@ -63,7 +63,10 @@ export default function ProjectVideoPlayer({
     return (
       <BunnyEmbed
         embedUrl={resolved.embedUrl}
-        shouldPlay={true}
+        isVisible={true}
+        isSectionVisible={true}
+        isActiveSlide={true}
+        isDragging={false}
         reducedMotion={reducedMotion}
         className={className}
         showControls={false}

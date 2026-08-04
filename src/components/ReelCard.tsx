@@ -45,12 +45,14 @@ export default function ReelCard({
   video,
   isDragging,
   isActive = true,
+  isSectionVisible = true,
   posterUrl,
   reducedMotion = false,
 }: {
   video: ProjectVideoData | undefined | null;
   isDragging: boolean;
   isActive?: boolean;
+  isSectionVisible?: boolean;
   posterUrl?: string;
   reducedMotion?: boolean;
 }) {
@@ -172,9 +174,12 @@ export default function ReelCard({
       {resolved.kind === 'bunny' && (
         <BunnyEmbed
           embedUrl={resolved.embedUrl}
-          shouldPlay={isNearViewport && !shouldPause}
-          posterUrl={posterUrl}
+          isVisible={isNearViewport}
+          isSectionVisible={isSectionVisible}
+          isActiveSlide={isActive}
+          isDragging={isDragging}
           reducedMotion={reducedMotion}
+          posterUrl={posterUrl}
         />
       )}
 

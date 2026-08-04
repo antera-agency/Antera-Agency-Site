@@ -82,6 +82,27 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // ============================================================
+  // Is de portfolio-sectie zelf (verticaal) in beeld? Los van de
+  // per-kaart horizontale zichtbaarheid binnen de slider — een
+  // bezoeker kan verder naar beneden gescrold zijn (bijv. naar de
+  // CTA-sectie) terwijl een kaart binnen de slider-track technisch
+  // nog "gecentreerd" zou zijn. Zonder deze check kon een Bunny-
+  // video autoplayen terwijl de hele portfolio-sectie niet eens
+  // zichtbaar was.
+  // ============================================================
+  const [isSectionVisible, setIsSectionVisible] = useState(false);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsSectionVisible(entry.isIntersecting),
+      { threshold: 0.25 }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
   // Herbereken de layout-beslissing na elke render waarin het
   // aantal reels, de gekozen repeatCount, of het venster-formaat
   // is veranderd. Convergeert vanzelf: zodra de berekende waarden
@@ -338,6 +359,7 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
                       video={slide.project.video}
                       isDragging={isDragging}
                       isActive={activeIndex === null || activeIndex === i}
+                      isSectionVisible={isSectionVisible}
                       posterUrl={
                         slide.project.thumbnail
                           ? urlFor(slide.project.thumbnail).width(500).height(890).url()

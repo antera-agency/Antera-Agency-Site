@@ -4,31 +4,27 @@ import { useEffect, useRef, useState } from 'react';
 
 // ============================================================
 // Eén herbruikbare component voor alle Bunny Stream-embeds (hero
-// én portfolio-reels). Regelt:
+// én portfolio-reels).
 //
-// - Mount de iframe pas wanneer de video voor het eerst zichtbaar
-//   moet worden (via `shouldMount`, aangestuurd door de bestaande
-//   IntersectionObserver in ReelCard.tsx) — nooit vooraf, dus geen
-//   eager loading van spelers die niemand ziet.
-// - Toont daarvóór een poster/thumbnail (of een subtiele merkkleur-
-//   placeholder als die er niet is), zodat er geen layout shift
-//   ontstaat.
-// - Zodra gemount, blijft de iframe bestaan (geen herhaald
-//   afbreken/herladen) — pauzeren/hervatten gebeurt daarna via
-//   Bunny's officiële Player.js-bibliotheek, die betrouwbare
-//   play()/pause()/mute()-commando's ondersteunt (in tegenstelling
-//   tot TikTok, waar zoiets niet bestaat — vandaar dat TikTokEmbed
-//   wél de iframe zelf verwijdert/herlaadt).
-// - `shouldPlay` combineert in de aanroepende component: zichtbaar
-//   + de aangewezen actieve carouselkaart + niet handmatig
-//   gepauzeerd. Wijzigt dat naar false, dan pauzeert dit component
-//   de speler — het start nooit vanzelf opnieuw als de bezoeker
-//   zelf op pauze heeft gedrukt (zie `manuallyPaused` hieronder).
-// - Zichtbare bediening: pauzeren/afspelen, geluid aan/uit,
-//   volledig scherm (via de standaard iframe Fullscreen-API, werkt
-//   altijd, ongeacht of Player.js fullscreen ondersteunt).
-// - prefers-reduced-motion: geen automatische mount/afspeel — wel
-//   een klikbare play-knop, zodat de bezoeker zelf kan kiezen.
+// shouldPlay =
+//   playerReady && iframeMounted && isSectionVisible &&
+//   isActiveSlide && !isDragging && !reducedMotion && !userPaused
+//
+// De iframe mount zodra de video dichtbij genoeg is (zie
+// `isVisible`/`isSectionVisible`) — dat "warmt" de speler alvast
+// op, ook als hij nog niet de actieve kaart is, zodat er geen
+// laadvertraging is op het moment dat hij dat wél wordt.
+//
+// Kritiek punt (was de oorzaak van de autoplay-regressie): het
+// play()/pause()-effect hangt af van ZOWEL `shouldPlay` ALS
+// `playerReady`. Wordt shouldPlay waar terwijl de speler nog aan
+// het laden is (playerReady nog false), dan doet het effect niets
+// — maar zodra playerReady daarna alsnog waar wordt, draait dit
+// effect opnieuw (want playerReady staat in de dependency-array)
+// en leest dan de op-dat-moment actuele shouldPlay opnieuw uit.
+// Een play-verzoek van vóór `ready` gaat dus nooit verloren — in
+// tegenstelling tot de vorige opzet, waar het commando binnen de
+// `ready`-callback zelf een bevroren (stale) waarde gebruikte.
 // ============================================================
 
 declare global {
@@ -74,83 +70,107 @@ function loadPlayerJs(): Promise<void> {
 
 export default function BunnyEmbed({
   embedUrl,
-  shouldPlay,
-  posterUrl,
+  isVisible,
+  isSectionVisible,
+  isActiveSlide,
+  isDragging,
   reducedMotion = false,
+  posterUrl,
   className,
   showControls = true,
 }: {
   embedUrl: string;
-  // Combineert zichtbaarheid + "is dit de actieve kaart" +
-  // niet-handmatig-gepauzeerd — bepaald door de aanroeper.
-  shouldPlay: boolean;
-  posterUrl?: string;
+  // Kaart binnen de horizontale slider-buffer (bandbreedte-gate).
+  isVisible: boolean;
+  // De hele portfolio-sectie staat verticaal in beeld.
+  isSectionVisible: boolean;
+  // Dit is de aangewezen actieve carouselkaart.
+  isActiveSlide: boolean;
+  isDragging: boolean;
   reducedMotion?: boolean;
+  posterUrl?: string;
   className?: string;
   // Hero-gebruik is decoratief en heeft geen zichtbare bediening
   // nodig; portfolio-reels wel.
   showControls?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const [manuallyPaused, setManuallyPaused] = useState(false);
+  const [iframeMounted, setIframeMounted] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const [muted, setMuted] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<BunnyPlayer | null>(null);
 
-  const effectiveShouldPlay = shouldPlay && !manuallyPaused;
+  // Mount-voorwaarde: dichtbij/zichtbaar genoeg om alvast op te
+  // warmen. Bewust ZONDER isActiveSlide/isDragging/userPaused —
+  // die bepalen alleen of hij ook mag AFSPELEN, niet of hij alvast
+  // geladen mag worden (dat maakt de overgang naar "actief" instant
+  // i.p.v. dat er dan pas geladen wordt).
+  const wantsToMount = isVisible && isSectionVisible && !reducedMotion;
 
-  // Mount pas bij de eerste keer dat afspelen daadwerkelijk
-  // gewenst is — nooit vooraf, en nooit automatisch bij
-  // reduced-motion (de bezoeker kan nog altijd zelf op play
-  // drukken via de knop hieronder).
+  // De exacte, door de opdracht voorgeschreven formule.
+  const shouldPlay =
+    playerReady &&
+    iframeMounted &&
+    isSectionVisible &&
+    isActiveSlide &&
+    !isDragging &&
+    !reducedMotion &&
+    !userPaused;
+
   useEffect(() => {
-    if (shouldPlay && !mounted && !reducedMotion) {
-      setMounted(true);
+    if (wantsToMount && !iframeMounted) {
+      setIframeMounted(true);
     }
-  }, [shouldPlay, mounted, reducedMotion]);
+  }, [wantsToMount, iframeMounted]);
 
   // Player.js-instantie opzetten zodra de iframe in de DOM staat.
+  // Zet ALLEEN playerRef + playerReady — roept hier bewust geen
+  // play()/pause() aan. Dat gebeurt in het effect hieronder, dat
+  // zowel op shouldPlay als op playerReady reageert.
   useEffect(() => {
-    if (!mounted) return;
+    if (!iframeMounted) return;
     let cancelled = false;
 
     loadPlayerJs().then(() => {
       if (cancelled || !iframeRef.current || !window.playerjs) return;
       const player = new window.playerjs.Player(iframeRef.current);
+
       player.on('ready', () => {
         if (cancelled) return;
         playerRef.current = player;
-        if (effectiveShouldPlay) player.play();
+        setPlayerReady(true);
       });
     });
 
     return () => {
       cancelled = true;
       playerRef.current = null;
+      setPlayerReady(false);
     };
-    // effectiveShouldPlay bewust niet in de dependency-array: dit
-    // effect zet de player maar één keer op bij het mounten. Latere
-    // wijzigingen in shouldPlay/manuallyPaused worden hieronder
-    // afgehandeld, op de al bestaande player-instantie.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted]);
+  }, [iframeMounted]);
 
-  // Elke wijziging in zichtbaarheid/actieve status/handmatige pauze
-  // vertaalt zich naar een play()- of pause()-commando op de
-  // bestaande speler — geen herladen, dus geen verlies van
-  // afspeelpositie.
+  // DE fix: reageert op zowel shouldPlay als playerReady. Wordt
+  // shouldPlay waar vóórdat de speler klaar is, dan gebeurt hier
+  // niets — maar zodra playerReady daarna alsnog waar wordt, draait
+  // dit effect opnieuw en leest de op dat moment actuele shouldPlay.
+  // Geen enkel play-verzoek gaat dus verloren.
   useEffect(() => {
     const player = playerRef.current;
-    if (!player) return;
-    if (effectiveShouldPlay) {
+    if (!playerReady || !player) return;
+
+    if (shouldPlay) {
+      // Verplicht: mute() vóór play(), anders kan de browser de
+      // autoplay weigeren.
+      player.mute();
       player.play();
     } else {
       player.pause();
     }
-  }, [effectiveShouldPlay]);
+  }, [shouldPlay, playerReady]);
 
-  function toggleManualPause() {
-    setManuallyPaused((prev) => !prev);
+  function toggleUserPaused() {
+    setUserPaused((prev) => !prev);
   }
 
   function toggleMute() {
@@ -171,10 +191,10 @@ export default function BunnyEmbed({
 
   return (
     <div style={wrapperStyle} className={className}>
-      {!mounted && (
+      {!iframeMounted && (
         <button
           type="button"
-          onClick={() => setMounted(true)}
+          onClick={() => setIframeMounted(true)}
           aria-label="Video afspelen"
           style={{
             ...fillStyle,
@@ -193,27 +213,32 @@ export default function BunnyEmbed({
         </button>
       )}
 
-      {mounted && (
+      {iframeMounted && (
         <iframe
           ref={iframeRef}
-          src={`${embedUrl}?autoplay=true&muted=true&loop=true&preload=true&responsive=true`}
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          // autoplay=false: onze eigen code (play()/pause() via
+          // Player.js) bestuurt het afspelen, niet Bunny's eigen
+          // URL-parameter — anders kunnen beide mechanismen elkaar
+          // tegenwerken. playsinline=true voorkomt dat mobiele
+          // browsers de video geforceerd fullscreen openen.
+          src={`${embedUrl}?autoplay=false&muted=true&loop=true&playsinline=true&preload=true&responsive=true`}
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           style={{ ...fillStyle, border: 'none' }}
           title="Project video"
         />
       )}
 
-      {mounted && showControls && (
+      {iframeMounted && showControls && (
         <div style={controlsRowStyle}>
           <button
             type="button"
-            onClick={toggleManualPause}
-            aria-label={manuallyPaused ? 'Video afspelen' : 'Video pauzeren'}
-            aria-pressed={manuallyPaused}
+            onClick={toggleUserPaused}
+            aria-label={userPaused ? 'Video afspelen' : 'Video pauzeren'}
+            aria-pressed={userPaused}
             style={ctrlButtonStyle}
           >
-            {manuallyPaused ? <PlayIconSmall /> : <PauseIconSmall />}
+            {userPaused ? <PlayIconSmall /> : <PauseIconSmall />}
           </button>
           <button
             type="button"
