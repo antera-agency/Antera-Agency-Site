@@ -26,7 +26,7 @@ export default defineType({
       title: 'Video-URL',
       type: 'url',
       description:
-        'Optie 2: link naar YouTube, Vimeo, TikTok, Instagram (Reel/Post), Cloudinary of een andere videobron. Werkt naast of in plaats van een upload. Let op bij TikTok: gebruik de volledige video-URL, geen verkorte vm.tiktok.com-link. Let op bij Instagram: toont Instagram\'s eigen embed-kaart (met hun UI) — geen stille autoplay, de bezoeker moet zelf op play klikken; dit is een beperking van Instagram zelf.',
+        'Optie 2: link naar YouTube, Vimeo, TikTok, Instagram (Reel/Post), Bunny Stream, Cloudinary of een andere videobron. Werkt naast of in plaats van een upload. Let op bij TikTok: gebruik de volledige video-URL, geen verkorte vm.tiktok.com-link. Let op bij Instagram: toont Instagram\'s eigen embed-kaart (met hun UI) — geen stille autoplay, de bezoeker moet zelf op play klikken; dit is een beperking van Instagram zelf. Bunny Stream: zowel de "Direct Play"-link (player.mediadelivery.net/play/...) als de embed-link (player.mediadelivery.net/embed/...) worden geaccepteerd — beide werken.',
       validation: (Rule) =>
         Rule.uri({ scheme: ['http', 'https'] }),
     }),

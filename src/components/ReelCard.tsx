@@ -151,6 +151,15 @@ export default function ReelCard({
         />
       )}
 
+      {resolved.kind === 'bunny' && (
+        <iframe
+          ref={iframeRef}
+          src={`${resolved.embedUrl}?autoplay=true&muted=true&loop=true&preload=true&responsive=true`}
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          title="Project video"
+        />
+      )}
+
       {resolved.kind === 'tiktok' && (
         <TikTokEmbed embedUrl={resolved.embedUrl} dragPaused={isDragging} />
       )}
@@ -173,7 +182,8 @@ export default function ReelCard({
           Instagram's eigen ingebouwde knoppen. */}
       {resolved.kind !== 'instagram' &&
         resolved.kind !== 'tiktok' &&
-        resolved.kind !== 'tiktok-shortlink-unsupported' && (
+        resolved.kind !== 'tiktok-shortlink-unsupported' &&
+        resolved.kind !== 'bunny' && (
           <button
             type="button"
             className={styles.pauseButton}

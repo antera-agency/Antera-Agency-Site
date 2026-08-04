@@ -7,6 +7,7 @@ export type ResolvedVideo =
   | { kind: 'tiktok'; embedUrl: string }
   | { kind: 'tiktok-shortlink-unsupported' }
   | { kind: 'instagram'; postUrl: string }
+  | { kind: 'bunny'; embedUrl: string }
   | { kind: 'direct'; url: string } // Cloudinary of andere directe .mp4-links
   | { kind: 'none' };
 
@@ -64,6 +65,27 @@ function resolveExternalUrl(url: string): ResolvedVideo {
     return {
       kind: 'vimeo',
       embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}`,
+    };
+  }
+
+  // ---------- Bunny Stream ----------
+  // Bunny gebruikt twee URL-vormen voor dezelfde video:
+  //   .../play/{libraryId}/{videoId}   — "Direct Play", bedoeld om
+  //                                       los te openen, niet te embedden
+  //   .../embed/{libraryId}/{videoId}  — de eigenlijke iframe-embed-URL
+  // Beide worden hier herkend en intern genormaliseerd naar de
+  // embed-vorm, zodat de content-editor niet zelf hoeft te weten
+  // welke variant nodig is. Zowel het huidige domein
+  // (player.mediadelivery.net) als het oudere, nog altijd werkende
+  // domein (iframe.mediadelivery.net) worden ondersteund.
+  const bunnyMatch = url.match(
+    /(?:player|iframe)\.mediadelivery\.net\/(?:play|embed)\/(\d+)\/([a-f0-9-]{36})/i
+  );
+  if (bunnyMatch) {
+    const [, libraryId, videoId] = bunnyMatch;
+    return {
+      kind: 'bunny',
+      embedUrl: `https://player.mediadelivery.net/embed/${libraryId}/${videoId}`,
     };
   }
 

@@ -45,6 +45,17 @@ export default function ProjectVideoPlayer({
     );
   }
 
+  if (resolved.kind === 'bunny') {
+    return (
+      <iframe
+        className={className}
+        src={`${resolved.embedUrl}?autoplay=true&muted=true&loop=true&preload=true&responsive=true`}
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        title="Project video"
+      />
+    );
+  }
+
   if (resolved.kind === 'tiktok') {
     return <TikTokEmbed embedUrl={resolved.embedUrl} className={className} />;
   }
