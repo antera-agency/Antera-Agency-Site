@@ -67,6 +67,21 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }, []);
 
+  // ============================================================
+  // Welke kaart is op dit moment de "actieve" (dichtst bij het
+  // midden van de zichtbare viewport)? Gebruikt door ReelCard om
+  // te garanderen dat nooit meer dan één portfolio-video tegelijk
+  // afspeelt. `null` betekent "geen beperking" — geldt in de
+  // 'static'-weergave (te weinig reels om te scrollen), waar alles
+  // toch al gelijktijdig stilstaat en zichtbaar is.
+  //
+  // Wordt bijgewerkt vanuit de bestaande rAF-loop hieronder (zie
+  // de sleep/loop-animatie-effect) — geen aparte observer of tweede
+  // animatieloop.
+  // ============================================================
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   // Herbereken de layout-beslissing na elke render waarin het
   // aantal reels, de gekozen repeatCount, of het venster-formaat
   // is veranderd. Convergeert vanzelf: zodra de berekende waarden
@@ -166,6 +181,7 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     let isPaused = false;
     const baseSpeed = 0.45;
     let rafId: number;
+    let activeCheckCounter = 0;
 
     function wrap(offset: number) {
       // Houdt de offset binnen (-unitWidth, 0], zodat het overgangs-
@@ -174,6 +190,31 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       let o = offset % unitWidth;
       if (o > 0) o -= unitWidth;
       return o;
+    }
+
+    // Bepaalt welke kaart het dichtst bij het midden van de
+    // viewport staat. Draait niet elke frame (dat zijn onnodig veel
+    // layout-metingen bij meerdere kopieën), maar elke ~6 frames —
+    // ruim vaak genoeg voor een vloeiend aanvoelende overgang.
+    function updateActiveCard() {
+      if (!viewport) return;
+      const viewportRect = viewport.getBoundingClientRect();
+      const centerX = viewportRect.left + viewportRect.width / 2;
+
+      let closestIndex: number | null = null;
+      let closestDist = Infinity;
+      slideRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const elCenter = rect.left + rect.width / 2;
+        const dist = Math.abs(elCenter - centerX);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestIndex = i;
+        }
+      });
+
+      setActiveIndex((prev) => (prev === closestIndex ? prev : closestIndex));
     }
 
     function frame() {
@@ -188,6 +229,13 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
         currentOffset = wrap(currentOffset);
         track!.style.transform = `translateX(${currentOffset}px)`;
       }
+
+      activeCheckCounter++;
+      if (activeCheckCounter >= 6) {
+        activeCheckCounter = 0;
+        updateActiveCard();
+      }
+
       rafId = requestAnimationFrame(frame);
     }
     rafId = requestAnimationFrame(frame);
@@ -276,11 +324,27 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
           ref={trackRef}
         >
           {slides.map((slide, i) => (
-            <div className={styles.slide} key={`${slide.key}-${i}`}>
+            <div
+              className={styles.slide}
+              key={`${slide.key}-${i}`}
+              ref={(el) => {
+                slideRefs.current[i] = el;
+              }}
+            >
               {slide.project ? (
                 <>
                   {slide.project.video ? (
-                    <ReelCard video={slide.project.video} isDragging={isDragging} />
+                    <ReelCard
+                      video={slide.project.video}
+                      isDragging={isDragging}
+                      isActive={activeIndex === null || activeIndex === i}
+                      posterUrl={
+                        slide.project.thumbnail
+                          ? urlFor(slide.project.thumbnail).width(500).height(890).url()
+                          : undefined
+                      }
+                      reducedMotion={reducedMotion}
+                    />
                   ) : slide.project.thumbnail ? (
                     <Image
                       src={urlFor(slide.project.thumbnail).width(500).height(890).url()}
