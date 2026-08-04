@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sanity content-backups (gemaakt door scripts/migrate-portable-text.ts)
+# Deze bevatten je eigen website-content — bewaar ze lokaal/veilig,
+# maar commit ze niet mee naar de repository.
+/sanity-backups

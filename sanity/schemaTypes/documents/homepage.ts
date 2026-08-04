@@ -46,8 +46,7 @@ export default defineType({
     defineField({
       name: 'heroSubtitle',
       title: 'Hero-subtitel / intro-tekst',
-      type: 'text',
-      rows: 3,
+      type: 'portableText',
       group: 'hero',
       validation: (Rule) => Rule.required(),
     }),
@@ -98,9 +97,10 @@ export default defineType({
     defineField({
       name: 'positioningParagraphs',
       title: 'Tekstblokken',
-      type: 'array',
-      of: [{ type: 'text', rows: 3 }],
+      type: 'portableText',
       group: 'positioning',
+      description:
+        'Eén rich-text veld — gebruik een lege regel voor een nieuwe paragraaf, of Shift+Enter voor een regelafbreking binnen dezelfde paragraaf.',
     }),
 
     // ---------- APPROACH ("Wat je krijgt") ----------
@@ -114,8 +114,7 @@ export default defineType({
     defineField({
       name: 'approachIntro',
       title: 'Introductietekst',
-      type: 'text',
-      rows: 2,
+      type: 'portableText',
       group: 'approach',
     }),
     defineField({
@@ -130,7 +129,7 @@ export default defineType({
           fields: [
             defineField({ name: 'tag', title: 'Label (kleine tag)', type: 'string' }),
             defineField({ name: 'title', title: 'Titel', type: 'string' }),
-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
+            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
           ],
           preview: {
             select: { title: 'title', subtitle: 'tag' },
@@ -166,8 +165,7 @@ export default defineType({
     defineField({
       name: 'frameworkIntro',
       title: 'Introductietekst',
-      type: 'text',
-      rows: 2,
+      type: 'portableText',
       group: 'framework',
     }),
     defineField({
@@ -181,7 +179,7 @@ export default defineType({
           name: 'frameworkStep',
           fields: [
             defineField({ name: 'title', title: 'Titel', type: 'string' }),
-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
+            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
           ],
           preview: {
             select: { title: 'title' },
@@ -192,9 +190,22 @@ export default defineType({
     defineField({
       name: 'frameworkLoopNote',
       title: 'Loop-notitie onderaan',
-      type: 'string',
+      type: 'portableText',
       group: 'framework',
-      initialValue: 'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.',
+      initialValue: () => [
+        {
+          _type: 'block',
+          style: 'normal',
+          markDefs: [],
+          children: [
+            {
+              _type: 'span',
+              text: 'Stap 5 voedt terug naar stap 2 — zo wordt elke maand scherper dan de vorige.',
+              marks: [],
+            },
+          ],
+        },
+      ],
     }),
 
     // ---------- PROCESS ----------
@@ -223,7 +234,7 @@ export default defineType({
           name: 'processStep',
           fields: [
             defineField({ name: 'title', title: 'Titel', type: 'string' }),
-            defineField({ name: 'body', title: 'Tekst', type: 'text', rows: 3 }),
+            defineField({ name: 'body', title: 'Tekst', type: 'portableText' }),
           ],
           preview: { select: { title: 'title' } },
         },
@@ -248,9 +259,10 @@ export default defineType({
     defineField({
       name: 'aboutParagraphs',
       title: 'Tekstblokken',
-      type: 'array',
-      of: [{ type: 'text', rows: 3 }],
+      type: 'portableText',
       group: 'about',
+      description:
+        'Eén rich-text veld — gebruik een lege regel voor een nieuwe paragraaf, of Shift+Enter voor een regelafbreking binnen dezelfde paragraaf.',
     }),
     defineField({
       name: 'aboutPhoto',
@@ -296,8 +308,7 @@ export default defineType({
     defineField({
       name: 'ctaBody',
       title: 'Tekst',
-      type: 'text',
-      rows: 2,
+      type: 'portableText',
       group: 'cta',
     }),
     defineField({

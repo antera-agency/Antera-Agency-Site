@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Process.module.css';
 
@@ -82,7 +83,7 @@ export default function Process({ data }: { data: HomepageData }) {
               </div>
               <div>
                 <h3 className={styles.stepTitle}>{step.title}</h3>
-                <p className={styles.stepBody}>{step.body}</p>
+                <PortableTextRenderer value={step.body} className={styles.stepBody} />
               </div>
             </div>
           ))}

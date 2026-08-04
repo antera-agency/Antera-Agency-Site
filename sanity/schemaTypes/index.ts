@@ -5,6 +5,7 @@ import seo from './objects/seo';
 import ctaButton from './objects/ctaButton';
 import socialLink from './objects/socialLink';
 import projectVideo from './objects/projectVideo';
+import portableText from './objects/portableText';
 
 // documents (eigen entries in de Studio)
 import homepage from './documents/homepage';
@@ -21,6 +22,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     ctaButton,
     socialLink,
     projectVideo,
+    portableText,
     // documents
     homepage,
     portfolioProject,

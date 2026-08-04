@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
 import { splitTitleLines } from '@/lib/splitTitleLines';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Positioning.module.css';
 
@@ -46,7 +47,12 @@ export default function Positioning({ data }: { data: HomepageData }) {
       }
     );
 
-    gsap.utils.toArray<HTMLElement>('[data-pos="para"]').forEach((el) => {
+    // `data-pos="para"` staat nu op de Portable Text-wrapper (één
+    // veld kan meerdere paragrafen bevatten); de selector target
+    // de individuele <p>-tags daarbinnen, zodat elke paragraaf nog
+    // steeds zijn eigen onafhankelijke scroll-animatie krijgt —
+    // exact hetzelfde gedrag als voorheen met losse <p>-elementen.
+    gsap.utils.toArray<HTMLElement>('[data-pos="para"] p').forEach((el) => {
       gsap.fromTo(
         el,
         { opacity: 0, y: 28, filter: 'blur(6px)' },
@@ -81,11 +87,11 @@ export default function Positioning({ data }: { data: HomepageData }) {
           {data.positioningEyebrow}
         </div>
         <h2 className={`display ${styles.title}`}>{titleLines}</h2>
-        {(data.positioningParagraphs ?? []).map((para, i) => (
-          <p className={styles.body} data-pos="para" key={i}>
-            {para}
-          </p>
-        ))}
+        <PortableTextRenderer
+          value={data.positioningParagraphs}
+          className={styles.body}
+          data-pos="para"
+        />
       </div>
     </section>
   );

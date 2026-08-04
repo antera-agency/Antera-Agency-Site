@@ -36,3 +36,18 @@
   margin-bottom: 18px;
   max-width: 560px;
 }
+
+/* Herstelt exact de paragraaf-tussenruimte (18px) van vóór de
+   Portable Text-conversie. De gedeelde renderer (zie
+   PortableTextRenderer.module.css) gebruikt een kleinere, em-
+   gebaseerde standaardwaarde voor herbruikbaarheid elders — deze
+   override geldt alleen hier, via hogere CSS-specificiteit, en
+   raakt geen andere sectie. Ook de laatste paragraaf behoudt zijn
+   marge (zoals voorheen — er was geen "laatste paragraaf"-
+   uitzondering in de oude, losse <p>-opzet). */
+.body p {
+  margin-bottom: 18px;
+}
+.body p:last-child {
+  margin-bottom: 18px;
+}

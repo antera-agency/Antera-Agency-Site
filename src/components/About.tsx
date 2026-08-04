@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
 import { urlFor } from '@/sanity/image';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './About.module.css';
 
@@ -77,6 +78,32 @@ export default function About({ data }: { data: HomepageData }) {
         }
       );
     });
+
+    // Aparte marker (niet "fade") voor de Portable Text-wrapper om
+    // aboutParagraphs: die bevat nu mogelijk meerdere paragrafen in
+    // één veld, dus we targeten de individuele <p>-tags daarbinnen
+    // in plaats van de wrapper als geheel — exact hetzelfde
+    // staggered animatiegedrag als voorheen met losse <p>-elementen,
+    // zonder dat de wrapper zelf óók nog een eigen fade-tween krijgt
+    // (dat zou dubbelop gaan met de fade van elke paragraaf erin).
+    gsap.utils.toArray<HTMLElement>('[data-about="fade-paragraphs"] p').forEach((el) => {
+      gsap.fromTo(
+        el,
+        { opacity: 0, y: 28, filter: 'blur(6px)' },
+        {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+          },
+        }
+      );
+    });
   }, []);
 
   return (
@@ -103,11 +130,13 @@ export default function About({ data }: { data: HomepageData }) {
           <h2 className={`display ${styles.title}`} data-about="fade">
             {data.aboutTitle}
           </h2>
-          {(data.aboutParagraphs ?? []).map((para, i) => (
-            <p className={styles.body} data-about="fade" key={i}>
-              {para}
-            </p>
-          ))}
+          {(data.aboutParagraphs ?? []).length > 0 && (
+            <PortableTextRenderer
+              value={data.aboutParagraphs}
+              className={styles.body}
+              data-about="fade-paragraphs"
+            />
+          )}
           <div className={styles.stats} data-about="fade">
             {(data.aboutStats ?? []).map((stat, i) => (
               <div key={i}>

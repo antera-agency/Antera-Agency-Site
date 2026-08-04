@@ -24,8 +24,7 @@ export default defineType({
     defineField({
       name: 'testimonial',
       title: 'Testimonial-tekst',
-      type: 'text',
-      rows: 4,
+      type: 'portableText',
       validation: (Rule) => Rule.required(),
     }),
     defineField({

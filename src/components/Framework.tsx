@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Framework.module.css';
 
@@ -111,7 +112,7 @@ export default function Framework({ data }: { data: HomepageData }) {
             titleText
           )}
         </h2>
-        <p className={styles.intro}>{data.frameworkIntro}</p>
+        <PortableTextRenderer value={data.frameworkIntro} className={styles.intro} />
       </div>
 
       <div className={styles.stage} ref={stageRef}>
@@ -131,7 +132,7 @@ export default function Framework({ data }: { data: HomepageData }) {
               >
                 <div className={styles.panelNum}>{step.n}</div>
                 <h3 className={`display ${styles.panelTitle}`}>{step.title}</h3>
-                <p className={styles.panelBody}>{step.body}</p>
+                <PortableTextRenderer value={step.body} className={styles.panelBody} />
               </div>
             ))}
           </div>
@@ -140,7 +141,8 @@ export default function Framework({ data }: { data: HomepageData }) {
 
       <div className="wrap">
         <div className={styles.loopNote}>
-          <span>↻</span> {data.frameworkLoopNote}
+          <span>↻</span>
+          <PortableTextRenderer value={data.frameworkLoopNote} />
         </div>
       </div>
     </section>

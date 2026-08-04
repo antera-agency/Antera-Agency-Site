@@ -6,6 +6,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData, ContactInfoData } from '@/sanity/types';
 import styles from './CTA.module.css';
 
@@ -106,9 +107,7 @@ export default function CTA({
     lineInnerClassName: styles.lineInner,
   })}
 </h2>
-        <p className={styles.body} data-cta="fade">
-          {data.ctaBody}
-        </p>
+        <PortableTextRenderer value={data.ctaBody} className={styles.body} data-cta="fade" />
         <div className={styles.buttons} data-cta="fade">
           {/* BEWERKEN: knoppen + links worden beheerd via Sanity (Homepage → Call to action → Knoppen) */}
           {(data.ctaButtons ?? []).map((btn) => (

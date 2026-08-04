@@ -1,4 +1,5 @@
 import type { Image } from 'sanity';
+import type { PortableTextBlock } from '@portabletext/types';
 
 export interface SanityVideo {
   videoFile?: { asset?: { _ref?: string } } | null;
@@ -15,17 +16,17 @@ export interface CtaButtonData {
 export interface ApproachPanel {
   tag?: string;
   title?: string;
-  body?: string;
+  body?: PortableTextBlock[];
 }
 
 export interface FrameworkStep {
   title?: string;
-  body?: string;
+  body?: PortableTextBlock[];
 }
 
 export interface ProcessStep {
   title?: string;
-  body?: string;
+  body?: PortableTextBlock[];
 }
 
 export interface AboutStat {
@@ -44,25 +45,25 @@ export interface HomepageData {
   heroEyebrow?: string;
   heroTitle?: string;
   heroHighlightWord?: string;
-  heroSubtitle?: string;
+  heroSubtitle?: PortableTextBlock[];
   heroButtons?: CtaButtonData[];
   heroVideo?: SanityVideo;
 
   positioningEyebrow?: string;
   positioningTitle?: string;
   positioningHighlight?: string;
-  positioningParagraphs?: string[];
+  positioningParagraphs?: PortableTextBlock[];
 
   approachTitle?: string;
-  approachIntro?: string;
+  approachIntro?: PortableTextBlock[];
   approachPanels?: ApproachPanel[];
 
   frameworkEyebrow?: string;
   frameworkTitle?: string;
   frameworkTitleHighlight?: string;
-  frameworkIntro?: string;
+  frameworkIntro?: PortableTextBlock[];
   frameworkSteps?: FrameworkStep[];
-  frameworkLoopNote?: string;
+  frameworkLoopNote?: PortableTextBlock[];
 
   processEyebrow?: string;
   processTitle?: string;
@@ -70,13 +71,13 @@ export interface HomepageData {
 
   aboutEyebrow?: string;
   aboutTitle?: string;
-  aboutParagraphs?: string[];
+  aboutParagraphs?: PortableTextBlock[];
   aboutPhoto?: Image;
   aboutStats?: AboutStat[];
 
   ctaTitle?: string;
   ctaHighlight?: string;
-  ctaBody?: string;
+  ctaBody?: PortableTextBlock[];
   ctaButtons?: CtaButtonData[];
 
   seo?: SeoData;
@@ -99,7 +100,7 @@ export interface PortfolioProjectData {
 export interface ServiceData {
   _id: string;
   title: string;
-  description?: string;
+  description?: PortableTextBlock[];
   icon?: Image;
   order?: number;
 }
@@ -109,7 +110,7 @@ export interface TestimonialData {
   name: string;
   company?: string;
   position?: string;
-  testimonial: string;
+  testimonial: PortableTextBlock[];
   profileImage?: Image;
 }
 
@@ -118,7 +119,7 @@ export interface ContactInfoData {
   phone?: string;
   location?: string;
   socialLinks?: { platform: string; url: string }[];
-  contactCtaText?: string;
+  contactCtaText?: PortableTextBlock[];
 }
 
 export interface BrandData {

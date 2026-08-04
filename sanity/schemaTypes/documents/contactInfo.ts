@@ -33,8 +33,7 @@ export default defineType({
     defineField({
       name: 'contactCtaText',
       title: 'Contact CTA-tekst',
-      type: 'text',
-      rows: 2,
+      type: 'portableText',
       description: 'Bijv. de zin boven de contactknoppen in de CTA-sectie.',
     }),
   ],

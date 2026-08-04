@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
 import { splitTitleLines } from '@/lib/splitTitleLines';
 import ProjectVideoPlayer from './ProjectVideoPlayer';
+import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Hero.module.css';
 
@@ -183,9 +184,11 @@ export default function Hero({ data }: { data: HomepageData }) {
           <h1 className={`display ${styles.heroTitle}`} data-hero="title">
             {titleLines}
           </h1>
-          <p className={styles.heroPara} data-hero="para">
-            {data.heroSubtitle}
-          </p>
+          <PortableTextRenderer
+            value={data.heroSubtitle}
+            className={styles.heroPara}
+            data-hero="para"
+          />
           <div className={styles.heroActions} data-hero="actions">
             {(data.heroButtons ?? []).map((btn) => (
               <a
