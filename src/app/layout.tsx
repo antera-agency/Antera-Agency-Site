@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import ConsentProvider from '@/components/ConsentProvider';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -80,6 +81,7 @@ export default function RootLayout({
         <LoadingScreen />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <ConsentProvider />
+        <SpeedInsights />
       </body>
     </html>
   );
