@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import ConsentProvider from '@/components/ConsentProvider';
+import LoadingScreen from '@/components/LoadingScreen';
 import { SITE_URL } from '@/lib/siteConfig';
 import './globals.css';
 
@@ -76,6 +77,7 @@ export default function RootLayout({
             });
           `}
         </Script>
+        <LoadingScreen />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <ConsentProvider />
       </body>
