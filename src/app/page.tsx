@@ -81,7 +81,7 @@ export default async function Home() {
       <StructuredData />
       <Nav settings={settings} />
       <main>
-        <Hero data={homepage} />
+        <Hero data={homepage} calendlyUrl={settings.calendlyUrl} />
         <Positioning data={homepage} />
         <Approach data={homepage} />
         <Framework data={homepage} />
@@ -89,7 +89,7 @@ export default async function Home() {
         <LogoCarousel settings={settings} />
         <Process data={homepage} />
         <About data={homepage} />
-        <CTA data={homepage} contact={contact} />
+        <CTA data={homepage} contact={contact} calendlyUrl={settings.calendlyUrl} />
       </main>
       <Footer contact={contact} />
     </>

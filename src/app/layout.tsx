@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import ConsentProvider from '@/components/ConsentProvider';
 import LoadingScreen from '@/components/LoadingScreen';
+import CalendlyModal from '@/components/CalendlyModal';
 import { SITE_URL } from '@/lib/siteConfig';
 import './globals.css';
 
@@ -82,6 +83,7 @@ export default function RootLayout({
         <LoadingScreen />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <ConsentProvider />
+        <CalendlyModal />
         <SpeedInsights />
         <Analytics />
       </body>

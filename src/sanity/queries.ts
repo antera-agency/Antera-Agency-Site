@@ -118,6 +118,7 @@ export const siteSettingsQuery = /* groq */ `
     siteTitle,
     navCtaLabel,
     navCtaUrl,
+    calendlyUrl,
     logoCarouselLabel,
     brands,
     defaultSeo {

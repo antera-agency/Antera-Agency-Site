@@ -131,6 +131,7 @@ export interface SiteSettingsData {
   siteTitle?: string;
   navCtaLabel?: string;
   navCtaUrl?: string;
+  calendlyUrl?: string;
   logoCarouselLabel?: string;
   brands?: BrandData[];
   defaultSeo?: SeoData;

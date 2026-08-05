@@ -7,10 +7,11 @@ import { useGsapContext } from '@/hooks/useGsapContext';
 import { splitTitleLines } from '@/lib/splitTitleLines';
 import ProjectVideoPlayer from './ProjectVideoPlayer';
 import PortableTextRenderer from './PortableTextRenderer';
+import CtaLink from './CtaLink';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Hero.module.css';
 
-export default function Hero({ data }: { data: HomepageData }) {
+export default function Hero({ data, calendlyUrl }: { data: HomepageData; calendlyUrl?: string }) {
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -191,13 +192,14 @@ export default function Hero({ data }: { data: HomepageData }) {
           />
           <div className={styles.heroActions} data-hero="actions">
             {(data.heroButtons ?? []).map((btn) => (
-              <a
+              <CtaLink
                 key={btn.label}
                 href={btn.url}
+                calendlyUrl={calendlyUrl}
                 className={btn.style === 'secondary' ? 'btn-secondary' : 'btn-primary'}
               >
                 {btn.label}
-              </a>
+              </CtaLink>
             ))}
           </div>
         </div>

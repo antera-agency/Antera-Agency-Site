@@ -205,6 +205,7 @@ export const fallbackSiteSettings: SiteSettingsData = {
   siteTitle: 'Antera Agency',
   navCtaLabel: 'Boek een gesprek',
   navCtaUrl: '#contact',
+  calendlyUrl: 'https://calendly.com/antera-agency/30min',
   logoCarouselLabel: 'Merken die ons vertrouwen',
   brands: [{ name: 'MERK 01' }, { name: 'MERK 02' }, { name: 'MERK 03' }],
 };

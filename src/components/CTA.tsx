@@ -7,15 +7,18 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
 import PortableTextRenderer from './PortableTextRenderer';
+import CtaLink from './CtaLink';
 import type { HomepageData, ContactInfoData } from '@/sanity/types';
 import styles from './CTA.module.css';
 
 export default function CTA({
   data,
   contact,
+  calendlyUrl,
 }: {
   data: HomepageData;
   contact: ContactInfoData;
+  calendlyUrl?: string;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const markRef = useRef<HTMLDivElement>(null);
@@ -111,23 +114,24 @@ export default function CTA({
         <div className={styles.buttons} data-cta="fade">
           {/* BEWERKEN: knoppen + links worden beheerd via Sanity (Homepage → Call to action → Knoppen) */}
           {(data.ctaButtons ?? []).map((btn) => (
-            <a
-  key={btn.label}
-  href={btn.url}
-  target={
-    btn.url.startsWith("http") || btn.url.startsWith("mailto:")
-      ? "_blank"
-      : undefined
-  }
-  rel={
-    btn.url.startsWith("http") || btn.url.startsWith("mailto:")
-      ? "noopener noreferrer"
-      : undefined
-  }
-  className={btn.style === 'secondary' ? 'btn-secondary' : 'btn-primary'}
->
-  {btn.label}
-</a>
+            <CtaLink
+              key={btn.label}
+              href={btn.url}
+              calendlyUrl={calendlyUrl}
+              target={
+                btn.url.startsWith("http") || btn.url.startsWith("mailto:")
+                  ? "_blank"
+                  : undefined
+              }
+              rel={
+                btn.url.startsWith("http") || btn.url.startsWith("mailto:")
+                  ? "noopener noreferrer"
+                  : undefined
+              }
+              className={btn.style === 'secondary' ? 'btn-secondary' : 'btn-primary'}
+            >
+              {btn.label}
+            </CtaLink>
           ))}
         </div>
         {contactLine && <div className={styles.note}>{contactLine}</div>}

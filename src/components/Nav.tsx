@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import type { SiteSettingsData } from '@/sanity/types';
 import NavMenu from './NavMenu';
 import menuStyles from './NavMenu.module.css';
+import CtaLink from './CtaLink';
 
 export default function Nav({ settings }: { settings: SiteSettingsData }) {
   const navRef = useRef<HTMLElement>(null);
@@ -48,12 +49,13 @@ export default function Nav({ settings }: { settings: SiteSettingsData }) {
         </Link>
 
         <div className={menuStyles.actions}>
-          <a
+          <CtaLink
             href={settings.navCtaUrl || '#contact'}
+            calendlyUrl={settings.calendlyUrl}
             className="nav-cta"
           >
             {settings.navCtaLabel || 'Boek een gesprek'}
-          </a>
+          </CtaLink>
 
           <NavMenu />
         </div>
