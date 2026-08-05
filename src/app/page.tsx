@@ -8,9 +8,11 @@ import Portfolio from '@/components/Portfolio';
 import LogoCarousel from '@/components/LogoCarousel';
 import Process from '@/components/Process';
 import About from '@/components/About';
+import FAQ from '@/components/FAQ';
 import CTA from '@/components/CTA';
 import Footer from '@/components/Footer';
 import StructuredData from '@/components/StructuredData';
+import FaqStructuredData from '@/components/FaqStructuredData';
 
 import { safeFetch } from '@/sanity/fetch';
 import { homepageQuery, contactInfoQuery, siteSettingsQuery } from '@/sanity/queries';
@@ -79,9 +81,10 @@ export default async function Home() {
   return (
     <>
       <StructuredData />
+      <FaqStructuredData items={homepage.faqItems} enabled={homepage.faqEnabled} />
       <Nav settings={settings} />
       <main>
-        <Hero data={homepage} />
+        <Hero data={homepage} calendlyUrl={settings.calendlyUrl} />
         <Positioning data={homepage} />
         <Approach data={homepage} />
         <Framework data={homepage} />
@@ -89,7 +92,8 @@ export default async function Home() {
         <LogoCarousel settings={settings} />
         <Process data={homepage} />
         <About data={homepage} />
-        <CTA data={homepage} contact={contact} />
+        <FAQ data={homepage} />
+        <CTA data={homepage} contact={contact} calendlyUrl={settings.calendlyUrl} />
       </main>
       <Footer contact={contact} />
     </>

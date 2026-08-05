@@ -16,9 +16,10 @@ import styles from './NavMenu.module.css';
 
 const MENU_ITEMS = [
   { label: 'Home', href: '#hero' },
-  { label: 'Wat je krijgt', href: '#approachSection' },
+  { label: 'Onze bouwstenen', href: '#approachSection' },
   { label: 'Content Framework', href: '#frameworkSection' },
   { label: 'Portfolio', href: '#portfolio' },
+  { label: 'FAQ', href: '#faq' },
   { label: 'Contact', href: '#contact' },
 ];
 

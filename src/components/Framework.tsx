@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Framework.module.css';
@@ -13,6 +14,8 @@ export default function Framework({ data }: { data: HomepageData }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const progressFillRef = useRef<HTMLDivElement>(null);
+  const scrollCueRef = useRef<HTMLDivElement>(null);
+  const isTouch = useTouchDevice();
 
   const steps = (data.frameworkSteps ?? []).map((step, i) => ({
     n: `${String(i + 1).padStart(2, '0')} / ${String((data.frameworkSteps ?? []).length).padStart(2, '0')}`,
@@ -21,7 +24,16 @@ export default function Framework({ data }: { data: HomepageData }) {
   }));
 
   useGsapContext(sectionRef, ({ isReducedMotion }) => {
-    if (isReducedMotion) return;
+    if (isReducedMotion) {
+      // De paneel-animaties vallen weg, maar de sectie blijft wel
+      // scroll-gestuurd (de pin zelf wordt niet uitgeschakeld) — een
+      // statische, niet-pulserende cue blijft dus nuttig. Geen GSAP
+      // hier, puur een vaste CSS-staat.
+      if (scrollCueRef.current) {
+        scrollCueRef.current.style.opacity = '0.75';
+      }
+      return;
+    }
     gsap.registerPlugin(ScrollTrigger);
 
     const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
@@ -59,6 +71,23 @@ export default function Framework({ data }: { data: HomepageData }) {
       }
       tl.to({}, { duration: 0.5 }, i + 0.4);
     });
+
+    // Scroll-indicator: verschijnt vlak na de start van de gepinde
+    // ervaring, en verdwijnt weer zodra de bezoeker "betekenisvolle"
+    // voortgang heeft gemaakt — hier gedefinieerd als het moment
+    // vlak vóórdat de eerste paneel-overgang begint (positie 0.7 op
+    // de tijdlijn). Hij komt daarna niet terug, want dit is een
+    // eenmalige fade binnen dezelfde tijdlijn, geen los systeem dat
+    // per paneel opnieuw triggert.
+    if (scrollCueRef.current) {
+      tl.fromTo(
+        scrollCueRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: 'power1.out' },
+        0.05
+      );
+      tl.to(scrollCueRef.current, { opacity: 0, duration: 0.3, ease: 'power1.in' }, 0.65);
+    }
 
     gsap.fromTo(
       sectionRef.current,
@@ -135,6 +164,13 @@ export default function Framework({ data }: { data: HomepageData }) {
                 <PortableTextRenderer value={step.body} className={styles.panelBody} />
               </div>
             ))}
+          </div>
+
+          <div className={styles.scrollCue} ref={scrollCueRef} aria-hidden="true">
+            <span className={styles.scrollCueLabel}>
+              {isTouch ? 'SWIPE OM TE ONTDEKKEN' : 'SCROLL OM TE ONTDEKKEN'}
+            </span>
+            <span className={styles.scrollCueLine} />
           </div>
         </div>
       </div>

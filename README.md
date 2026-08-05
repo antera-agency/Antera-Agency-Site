@@ -1,3 +1,12 @@
+# Antera Agency
+
+> Before making any architectural changes, read:
+
+- CLAUDE.md
+- docs/WEBSITE_TECHNICAL_SPECIFICATION.md
+
+These documents are the primary source of truth for the engineering standards of this project.
+
 # ANTERA AGENCY — Next.js 15 + Sanity CMS
 
 Productie-klare Next.js 15 (App Router) site met GSAP + ScrollTrigger

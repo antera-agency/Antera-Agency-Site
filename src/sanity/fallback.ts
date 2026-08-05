@@ -150,6 +150,39 @@ export const fallbackHomepage: HomepageData = {
     { number: 'TLB', label: 'gevestigd in Tilburg' },
   ],
 
+  faqEnabled: true,
+  faqEyebrow: 'VEELGESTELDE VRAGEN',
+  faqTitle: 'Alles wat je wilt weten voordat we samenwerken.',
+  faqIntro: toPortableText(
+    'Een samenwerking begint met duidelijkheid. Hieronder vind je antwoord op de vragen die we het vaakst krijgen over onze aanpak, pakketten en resultaten.'
+  ),
+  faqItems: [
+    {
+      question: 'Is short-form content geschikt voor mijn bedrijf?',
+      answer: toPortableText(
+        "Short-form content is uitgegroeid tot een essentieel onderdeel van vrijwel iedere moderne marketingstrategie. Platforms zoals Instagram, TikTok en YouTube geven korte video's veel bereik, waardoor je nieuwe doelgroepen kunt aanspreken en de zichtbaarheid van je merk vergroot.\n\nMet strategische, creatieve video's kun je jouw expertise toegankelijk presenteren, autoriteit opbouwen en herkenning creëren bij potentiële klanten. Het draait niet om zomaar posten, maar om content die jouw merk versterkt en bijdraagt aan groei."
+      ),
+    },
+    {
+      question: 'Hoe werken jullie pakketten?',
+      answer: toPortableText(
+        'Onze pakketten sluiten aan op verschillende doelen, contentbehoeften en groeifases. Tijdens een vrijblijvende kennismaking bespreken we jouw bedrijf, doelgroep en ambities.\n\nOp basis daarvan adviseren we welke aanpak en contentfrequentie het beste aansluiten. Zo betaal je niet voor onnodige onderdelen, maar investeer je in een strategie die past bij jouw merk en groeiplannen.'
+      ),
+    },
+    {
+      question: 'Binnen welke periode kan ik resultaat verwachten?',
+      answer: toPortableText(
+        'De eerste veranderingen in bereik, interactie en profielbezoeken kunnen soms al na enkele publicaties zichtbaar worden. Structurele merk- en bedrijfsgroei vraagt echter om consistentie, analyse en voortdurende optimalisatie.\n\nDaarom kijken we verder dan losse views. Over meerdere maanden bouwen we aan meer zichtbaarheid, autoriteit, vertrouwen en uiteindelijk meer relevante klantkansen.'
+      ),
+    },
+    {
+      question: 'Wat zijn de kosten?',
+      answer: toPortableText(
+        'De pakketten van Antera Agency starten vanaf €600 exclusief btw per maand. De uiteindelijke investering hangt af van jouw doelen, de gewenste contentfrequentie en de benodigde strategie en productie.\n\nTijdens een vrijblijvende kennismaking brengen we jouw situatie in kaart en adviseren we het pakket dat het beste aansluit. Eventuele aanvullende opties bespreken we altijd vooraf en transparant.'
+      ),
+    },
+  ],
+
   ctaTitle: 'Klaar om jullie social media',
   ctaHighlight: 'klanten te laten opleveren?',
   ctaBody: toPortableText(
@@ -205,6 +238,7 @@ export const fallbackSiteSettings: SiteSettingsData = {
   siteTitle: 'Antera Agency',
   navCtaLabel: 'Boek een gesprek',
   navCtaUrl: '#contact',
+  calendlyUrl: 'https://calendly.com/antera-agency/30min',
   logoCarouselLabel: 'Merken die ons vertrouwen',
   brands: [{ name: 'MERK 01' }, { name: 'MERK 02' }, { name: 'MERK 03' }],
 };

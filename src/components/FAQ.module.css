@@ -1,0 +1,159 @@
+.faq {
+  background: var(--white);
+  color: var(--black);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 80px;
+    align-items: start;
+  }
+}
+
+.intro {
+  position: sticky;
+  top: 120px;
+}
+
+@media (max-width: 899px) {
+  .intro {
+    position: static;
+  }
+}
+
+.eyebrow {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 22px;
+  max-width: 420px;
+}
+
+.introText {
+  color: #5a5a52;
+  font-size: 15.5px;
+  line-height: 1.7;
+  max-width: 420px;
+}
+
+/* ---------- accordion ---------- */
+.accordion {
+  border-top: 1px solid #e8e6dc;
+}
+
+.item {
+  border-bottom: 1px solid #e8e6dc;
+}
+
+.questionHeading {
+  margin: 0;
+}
+
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 4px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.iconLineH,
+.iconLineV {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: var(--gold);
+  transition: transform 0.3s var(--ease-premium);
+}
+
+.iconLineH {
+  width: 14px;
+  height: 1.5px;
+  transform: translate(-50%, -50%);
+}
+
+.iconLineV {
+  width: 1.5px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+}
+
+.iconOpen .iconLineV {
+  transform: translate(-50%, -50%) rotate(90deg) scaleY(0);
+}
+
+.iconOpen .iconLineH {
+  background: var(--yellow);
+}
+
+/* grid-template-rows 0fr -> 1fr geeft een vloeiende open/dicht-
+   animatie zonder de inhoud te clippen (in tegenstelling tot een
+   max-height-truc, die bij lange Portable Text-antwoorden abrupt
+   kan afknippen). */
+.answerWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s var(--ease-premium);
+}
+
+.answerWrapOpen {
+  grid-template-rows: 1fr;
+}
+
+.answerInner {
+  overflow: hidden;
+}
+
+.answerText {
+  padding: 0 4px 22px;
+  color: #4a4a42;
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 560px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answerWrap,
+  .iconLineV,
+  .icon *,
+  .item * {
+    transition: none;
+  }
+}

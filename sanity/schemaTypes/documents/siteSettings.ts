@@ -34,6 +34,14 @@ export default defineType({
       initialValue: '#contact',
     }),
     defineField({
+      name: 'calendlyUrl',
+      title: 'Calendly URL',
+      type: 'url',
+      group: 'general',
+      description:
+        'De boekingslink die gebruikt wordt door CTA-knoppen die naar deze URL verwijzen. Wijst een knop-link (Hero, CTA-sectie, navigatie) exact naar deze URL, dan opent er automatisch een boekingsvenster in plaats van een nieuwe tab. Optioneel — zonder deze waarde werken Calendly-links gewoon als normale link.',
+    }),
+    defineField({
       name: 'logoCarouselLabel',
       title: 'Label boven de merken-carousel',
       type: 'string',

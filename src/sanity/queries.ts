@@ -57,6 +57,12 @@ export const homepageQuery = /* groq */ `
     aboutPhoto,
     aboutStats,
 
+    faqEnabled,
+    faqEyebrow,
+    faqTitle,
+    faqIntro,
+    faqItems,
+
     ctaTitle,
     ctaHighlight,
     ctaBody,
@@ -118,6 +124,7 @@ export const siteSettingsQuery = /* groq */ `
     siteTitle,
     navCtaLabel,
     navCtaUrl,
+    calendlyUrl,
     logoCarouselLabel,
     brands,
     defaultSeo {

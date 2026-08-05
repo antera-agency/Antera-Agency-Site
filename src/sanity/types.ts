@@ -34,6 +34,11 @@ export interface AboutStat {
   label?: string;
 }
 
+export interface FaqItem {
+  question?: string;
+  answer?: PortableTextBlock[];
+}
+
 export interface SeoData {
   seoTitle?: string;
   metaDescription?: string;
@@ -74,6 +79,12 @@ export interface HomepageData {
   aboutParagraphs?: PortableTextBlock[];
   aboutPhoto?: Image;
   aboutStats?: AboutStat[];
+
+  faqEnabled?: boolean;
+  faqEyebrow?: string;
+  faqTitle?: string;
+  faqIntro?: PortableTextBlock[];
+  faqItems?: FaqItem[];
 
   ctaTitle?: string;
   ctaHighlight?: string;
@@ -131,6 +142,7 @@ export interface SiteSettingsData {
   siteTitle?: string;
   navCtaLabel?: string;
   navCtaUrl?: string;
+  calendlyUrl?: string;
   logoCarouselLabel?: string;
   brands?: BrandData[];
   defaultSeo?: SeoData;
