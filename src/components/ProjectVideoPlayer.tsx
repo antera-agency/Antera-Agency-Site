@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { resolveVideo, type ProjectVideoData } from '@/lib/video';
 import InstagramEmbed from './InstagramEmbed';
 import TikTokEmbed from './TikTokEmbed';
+import BunnyEmbed from './BunnyEmbed';
 
 // Rendert automatisch het juiste element op basis van waar de video
 // vandaan komt: geüpload bestand of Cloudinary-link → <video>,
@@ -18,6 +20,15 @@ export default function ProjectVideoPlayer({
   className?: string;
 }) {
   const resolved = resolveVideo(video);
+
+  // Alleen relevant voor Bunny: de hero-video mag niet automatisch
+  // starten als de bezoeker reduced-motion heeft ingesteld op OS-
+  // niveau. Andere providers hier hadden dit al niet (bestaand
+  // gedrag, niet aangepast) — dit raakt alleen het nieuwe pad.
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, []);
 
   if (resolved.kind === 'file' || resolved.kind === 'direct') {
     return (
@@ -41,6 +52,24 @@ export default function ProjectVideoPlayer({
         src={`${resolved.embedUrl}${separator}${params}`}
         allow="autoplay; fullscreen"
         title="Project video"
+      />
+    );
+  }
+
+  if (resolved.kind === 'bunny') {
+    // Decoratief gebruik: geen zichtbare bediening, altijd
+    // "actief" (er is hier geen carousel met meerdere concurrerende
+    // video's — dat geldt alleen voor de portfolio-reels).
+    return (
+      <BunnyEmbed
+        embedUrl={resolved.embedUrl}
+        isVisible={true}
+        isSectionVisible={true}
+        isActiveSlide={true}
+        isDragging={false}
+        reducedMotion={reducedMotion}
+        className={className}
+        showControls={false}
       />
     );
   }

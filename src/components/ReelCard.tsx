@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { resolveVideo, type ProjectVideoData } from '@/lib/video';
 import InstagramEmbed from './InstagramEmbed';
 import TikTokEmbed from './TikTokEmbed';
+import BunnyEmbed from './BunnyEmbed';
 import styles from './Portfolio.module.css';
 
 // ============================================================
@@ -14,34 +15,49 @@ import styles from './Portfolio.module.css';
 // - Automatisch hervatten zodra het slepen stopt — TENZIJ de
 //   bezoeker de video zelf op pauze heeft gezet met de knop; die
 //   handmatige keuze blijft dan behouden.
+// - Nooit meer dan één portfolio-video tegelijk actief: `isActive`
+//   komt van PortfolioSlider.tsx, die bijhoudt welke kaart het
+//   dichtst bij het midden van de viewport staat. Alleen die kaart
+//   mag daadwerkelijk spelen — de rest blijft gemount-maar-
+//   gepauzeerd (Bunny/YouTube/Vimeo) of ongemount (native video).
 // - Alleen daadwerkelijk laden/downloaden wanneer de kaart zich
 //   in of vlak buiten het zichtbare deel van de slider bevindt
-//   (via IntersectionObserver). Zonder dit probeerde de browser
-//   ALLE kaarten tegelijk te bufferen — ook de kopieën die voor de
-//   naadloze loop worden gebruikt en zelden zichtbaar zijn — wat
-//   bij grote videobestanden (zeker rond en boven 1GB) rechtstreeks
-//   tot haperende afspeel bij de zichtbare video leidde, omdat alle
-//   beschikbare bandbreedte verdeeld werd over kaarten die niemand
-//   op dat moment ziet.
+//   (via IntersectionObserver, nu op een wrapper die voor élke
+//   video-soort werkt — voorheen alleen voor natieve <video>).
+//   Zonder dit probeerde de browser ALLE kaarten tegelijk te
+//   bufferen — ook de kopieën die voor de naadloze loop worden
+//   gebruikt en zelden zichtbaar zijn — wat bij grote video-
+//   bestanden rechtstreeks tot haperende afspeel leidde.
 //
 // Ondersteunt: geüploade/Cloudinary-video's (native <video>),
 // YouTube/Vimeo (postMessage Player API — officieel ondersteund,
-// betrouwbaar), TikTok (embed-iframe; TikTok publiceert geen
-// betrouwbare postMessage-API, dus pauzeren gebeurt door de iframe
-// volledig te verwijderen/herladen in plaats van een commando te
-// sturen — minder elegant, maar gegarandeerd werkend) en Instagram
-// (alleen tonen + afspelen via Instagram's eigen embed-kaart; geen
-// autoplay en geen pauze-knop mogelijk — platformbeperking van
-// Instagram zelf, zie src/lib/video.ts).
+// betrouwbaar), Bunny Stream (officiële Player.js-bibliotheek —
+// óók betrouwbaar, zie BunnyEmbed.tsx), TikTok (embed-iframe;
+// TikTok publiceert geen betrouwbare postMessage-API, dus pauzeren
+// gebeurt door de iframe volledig te verwijderen/herladen in
+// plaats van een commando te sturen — minder elegant, maar
+// gegarandeerd werkend) en Instagram (alleen tonen + afspelen via
+// Instagram's eigen embed-kaart; geen autoplay en geen pauze-knop
+// mogelijk — platformbeperking van Instagram zelf, zie
+// src/lib/video.ts).
 // ============================================================
 export default function ReelCard({
   video,
   isDragging,
+  isActive = true,
+  isSectionVisible = true,
+  posterUrl,
+  reducedMotion = false,
 }: {
   video: ProjectVideoData | undefined | null;
   isDragging: boolean;
+  isActive?: boolean;
+  isSectionVisible?: boolean;
+  posterUrl?: string;
+  reducedMotion?: boolean;
 }) {
   const resolved = resolveVideo(video);
+  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [manuallyPaused, setManuallyPaused] = useState(false);
@@ -52,14 +68,15 @@ export default function ReelCard({
     setOrigin(window.location.origin);
   }, []);
 
-  // Observeert of de video-kaart in of vlak buiten het zichtbare
-  // scherm staat. `rootMargin` geeft een horizontale buffer van
-  // 300px, zodat een video net vóór het in beeld schuiven al even
-  // begint te laden — zonder dat kaarten die nog ver weg zijn
-  // (inclusief de loop-duplicaten) al meebufferen.
+  // Observeert of de kaart in of vlak buiten het zichtbare scherm
+  // staat. `rootMargin` geeft een horizontale buffer van 300px,
+  // zodat een video net vóór het in beeld schuiven al even begint
+  // te laden — zonder dat kaarten die nog ver weg zijn (inclusief
+  // de loop-duplicaten) al meebufferen. Geldt nu voor élke
+  // video-soort via deze ene wrapper (voorheen alleen voor natieve
+  // <video>-elementen).
   useEffect(() => {
-    if (resolved.kind !== 'file' && resolved.kind !== 'direct') return;
-    const el = videoRef.current;
+    const el = containerRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
@@ -68,11 +85,12 @@ export default function ReelCard({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [resolved.kind]);
+  }, []);
 
-  const shouldPause = isDragging || manuallyPaused;
+  const shouldPause = isDragging || manuallyPaused || !isActive;
 
-  // Pauzeer tijdens het slepen, hervat erna — tenzij handmatig gepauzeerd.
+  // Pauzeer tijdens het slepen, hervat erna — tenzij handmatig
+  // gepauzeerd of niet de actieve kaart.
   useEffect(() => {
     if (resolved.kind === 'file' || resolved.kind === 'direct') {
       const el = videoRef.current;
@@ -91,7 +109,9 @@ export default function ReelCard({
     }
     // TikTok heeft geen effect hier nodig — die wordt hieronder
     // conditioneel wel/niet gerenderd op basis van `shouldPause`.
-    // Instagram heeft geen enkele vorm van programmatige besturing.
+    // Bunny regelt zijn eigen play/pause intern (zie BunnyEmbed),
+    // aangestuurd via de `shouldPlay`-prop hieronder.
+    // Instagram heeft geen enkele vorm van programmatige controle.
   }, [shouldPause, resolved.kind, isNearViewport]);
 
   function toggleManualPause() {
@@ -116,7 +136,7 @@ export default function ReelCard({
   if (resolved.kind === 'none') return null;
 
   return (
-    <>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
       {(resolved.kind === 'file' || resolved.kind === 'direct') && (
         <video
           ref={videoRef}
@@ -151,6 +171,18 @@ export default function ReelCard({
         />
       )}
 
+      {resolved.kind === 'bunny' && (
+        <BunnyEmbed
+          embedUrl={resolved.embedUrl}
+          isVisible={isNearViewport}
+          isSectionVisible={isSectionVisible}
+          isActiveSlide={isActive}
+          isDragging={isDragging}
+          reducedMotion={reducedMotion}
+          posterUrl={posterUrl}
+        />
+      )}
+
       {resolved.kind === 'tiktok' && (
         <TikTokEmbed embedUrl={resolved.embedUrl} dragPaused={isDragging} />
       )}
@@ -166,14 +198,15 @@ export default function ReelCard({
       {resolved.kind === 'instagram' && <InstagramEmbed postUrl={resolved.postUrl} />}
 
       {/* Pauze-knop alleen tonen bij platformen die we via deze
-          gedeelde knop besturen. TikTok regelt zijn eigen activatie-
-          en pauzeknop intern (zie TikTokEmbed.tsx) omdat het een
-          extra "tik om te starten"-stap nodig heeft. Instagram heeft
-          geen programmatige controle — de bezoeker gebruikt daar
-          Instagram's eigen ingebouwde knoppen. */}
+          gedeelde knop besturen. TikTok en Bunny regelen hun eigen
+          activatie- en pauzeknop intern (zie TikTokEmbed.tsx en
+          BunnyEmbed.tsx). Instagram heeft geen programmatige
+          controle — de bezoeker gebruikt daar Instagram's eigen
+          ingebouwde knoppen. */}
       {resolved.kind !== 'instagram' &&
         resolved.kind !== 'tiktok' &&
-        resolved.kind !== 'tiktok-shortlink-unsupported' && (
+        resolved.kind !== 'tiktok-shortlink-unsupported' &&
+        resolved.kind !== 'bunny' && (
           <button
             type="button"
             className={styles.pauseButton}
@@ -184,7 +217,7 @@ export default function ReelCard({
             {manuallyPaused ? <PlayIcon /> : <PauseIcon />}
           </button>
         )}
-    </>
+    </div>
   );
 }
 
