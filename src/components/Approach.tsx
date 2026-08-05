@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
 import styles from './Approach.module.css';
@@ -14,8 +15,10 @@ export default function Approach({ data }: { data: HomepageData }) {
   const stageInnerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollCueRef = useRef<HTMLDivElement>(null);
   const activePulse = useRef<gsap.core.Tween | null>(null);
   const currentActiveIndex = useRef<number | null>(null);
+  const isTouch = useTouchDevice();
 
   const panels = (data.approachPanels ?? []).map((panel, i) => ({
     num: String(i + 1).padStart(2, '0'),
@@ -95,6 +98,28 @@ export default function Approach({ data }: { data: HomepageData }) {
       });
     }
 
+    // Scroll-indicator: dezelfde gepinde-sectie-cue als bij Content
+    // Framework (zie Framework.tsx) — hier gekoppeld aan de progress
+    // van deze sectie's eigen ScrollTrigger in plaats van aan een
+    // los timeline-label, omdat deze sectie geen eigen timeline
+    // gebruikt. Fade in vlak na de start, fade out zodra de bezoeker
+    // duidelijk is begonnen te scrollen; komt daarna niet terug.
+    function updateScrollCue(progress: number) {
+      if (!scrollCueRef.current) return;
+      const fadeInEnd = 0.06;
+      const fadeOutStart = 0.16;
+      const fadeOutEnd = 0.26;
+      let opacity = 0;
+      if (progress <= fadeInEnd) {
+        opacity = gsap.utils.clamp(0, 1, progress / fadeInEnd);
+      } else if (progress <= fadeOutStart) {
+        opacity = 1;
+      } else if (progress <= fadeOutEnd) {
+        opacity = 1 - (progress - fadeOutStart) / (fadeOutEnd - fadeOutStart);
+      }
+      gsap.set(scrollCueRef.current, { opacity });
+    }
+
     gsap.to(track, {
       x: () => -getScrollDistance(),
       ease: 'none',
@@ -106,7 +131,10 @@ export default function Approach({ data }: { data: HomepageData }) {
         pin: stageInner,
         anticipatePin: 1,
         invalidateOnRefresh: true,
-        onUpdate: updateActivePanel,
+        onUpdate: (self) => {
+          updateActivePanel();
+          updateScrollCue(self.progress);
+        },
       },
     });
 
@@ -191,6 +219,13 @@ export default function Approach({ data }: { data: HomepageData }) {
                 <PortableTextRenderer value={panel.body} className={styles.panelBody} />
               </div>
             ))}
+          </div>
+
+          <div className={styles.scrollCue} ref={scrollCueRef} aria-hidden="true">
+            <span className={styles.scrollCueLabel}>
+              {isTouch ? 'SWIPE OM TE ONTDEKKEN' : 'SCROLL OM TE ONTDEKKEN'}
+            </span>
+            <span className={styles.scrollCueLine} />
           </div>
         </div>
       </div>

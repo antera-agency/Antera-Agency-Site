@@ -36,6 +36,62 @@
   overflow: hidden;
 }
 
+/* ---------- scroll-indicator ----------
+   Zelfde patroon als de Content Framework-sectie (zie
+   Framework.module.css): puur informatief, nooit interactief —
+   pointer-events:none zodat hij nooit klikken/slepen/swipen kan
+   onderscheppen. Fade-in/-out wordt aangestuurd vanuit de
+   ScrollTrigger van deze sectie (zie Approach.tsx). */
+.scrollCue {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 2;
+}
+
+.scrollCueLabel {
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scrollCueLine {
+  width: 1px;
+  height: 28px;
+  background: linear-gradient(to bottom, var(--yellow), transparent);
+  transform-origin: top;
+  animation: scrollCuePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes scrollCuePulse {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleY(0.55);
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollCueLine {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 .track {
   display: flex;
   gap: 0;
