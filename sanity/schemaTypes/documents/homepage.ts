@@ -14,6 +14,7 @@ export default defineType({
     { name: 'framework', title: 'Content Framework' },
     { name: 'process', title: 'Hoe we samenwerken' },
     { name: 'about', title: 'Over ons' },
+    { name: 'faq', title: 'Veelgestelde vragen' },
     { name: 'cta', title: 'Call to action' },
     { name: 'seo', title: 'SEO' },
   ],
@@ -290,6 +291,65 @@ export default defineType({
         },
       ],
       validation: (Rule) => Rule.max(4),
+    }),
+
+    // ---------- FAQ ----------
+    defineField({
+      name: 'faqEnabled',
+      title: 'FAQ-sectie tonen',
+      type: 'boolean',
+      group: 'faq',
+      description:
+        'Uitzetten verbergt de hele FAQ-sectie op de site, ook als er content is ingevuld. Onderscheidt een bewust uitgeschakelde sectie van velden die simpelweg nog niet zijn ingevuld.',
+      initialValue: true,
+    }),
+    defineField({
+      name: 'faqEyebrow',
+      title: 'Eyebrow-tekst',
+      type: 'string',
+      group: 'faq',
+      initialValue: 'VEELGESTELDE VRAGEN',
+    }),
+    defineField({
+      name: 'faqTitle',
+      title: 'Titel',
+      type: 'string',
+      group: 'faq',
+    }),
+    defineField({
+      name: 'faqIntro',
+      title: 'Introductietekst',
+      type: 'portableText',
+      group: 'faq',
+    }),
+    defineField({
+      name: 'faqItems',
+      title: 'Vragen',
+      type: 'array',
+      group: 'faq',
+      of: [
+        {
+          type: 'object',
+          name: 'faqItem',
+          fields: [
+            defineField({
+              name: 'question',
+              title: 'Vraag',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'answer',
+              title: 'Antwoord',
+              type: 'portableText',
+              validation: (Rule) => Rule.required(),
+            }),
+          ],
+          preview: {
+            select: { title: 'question' },
+          },
+        },
+      ],
     }),
 
     // ---------- CTA ----------

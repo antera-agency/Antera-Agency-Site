@@ -57,6 +57,12 @@ export const homepageQuery = /* groq */ `
     aboutPhoto,
     aboutStats,
 
+    faqEnabled,
+    faqEyebrow,
+    faqTitle,
+    faqIntro,
+    faqItems,
+
     ctaTitle,
     ctaHighlight,
     ctaBody,
