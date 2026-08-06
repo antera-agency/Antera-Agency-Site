@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Days_One, Inter } from 'next/font/google';
 import Script from 'next/script';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
@@ -12,37 +13,42 @@ import './globals.css';
 // ============================================================
 // FONTS
 // ============================================================
-// Dit project is gebouwd in een sandbox-omgeving zonder toegang tot
-// fonts.googleapis.com, dus next/font/google kan hier niet fetchen.
-// Op je eigen machine (met normale internettoegang) werkt de
-// next/font/google aanpak gewoon out of the box. Vervang het blok
-// hieronder door:
+// De twee merkfonts, geladen via next/font. Belangrijk detail:
+// next/font haalt deze bestanden op tijdens de BUILD en hostt ze
+// daarna zelf vanaf ons eigen domein (/_next/static/media). Er
+// gaat dus geen enkel runtime-verzoek naar Google vanuit de
+// browser van de bezoeker — geen extra <link>, geen externe
+// afhankelijkheid tijdens het laden, en geen privacy-implicatie.
 //
-//   import { Days_One, Inter } from 'next/font/google';
+// `variable` zet het font als CSS custom property in plaats van
+// als kant-en-klare font-family. Die properties (--font-display /
+// --font-body) staan al in globals.css met een systeemfont-stack
+// als vangnet; door de klassen hieronder op <body> te zetten,
+// worden ze daar overschreven met de echte fonts. Blijft de build
+// ooit zonder deze fonts, dan valt de site dus netjes terug in
+// plaats van ongestyled te ogen.
 //
-//   const daysOne = Days_One({
-//     weight: '400',
-//     subsets: ['latin'],
-//     variable: '--font-display',
-//     display: 'swap',
-//   });
+// `display: 'swap'` zorgt dat tekst direct leesbaar is in het
+// fallback-font en pas omwisselt zodra het merkfont binnen is —
+// nooit onzichtbare tekst tijdens het laden.
 //
-//   const inter = Inter({
-//     weight: ['400', '500', '600', '700', '800'],
-//     subsets: ['latin'],
-//     variable: '--font-body',
-//     display: 'swap',
-//   });
-//
-// en gebruik dan weer `${daysOne.variable} ${inter.variable}` in de
-// <body> className hieronder. next/font downloadt de fonts dan
-// tijdens de build en host ze zelf — geen aparte <link> nodig en
-// geen layout shift.
-//
-// Tot die tijd valt dit bestand terug op systeemfonts via CSS
-// custom properties, zodat de site altijd bouwt en werkt, ook
-// zonder internetverbinding tijdens de build.
+// Let op bij wijzigen: Days One heeft maar één gewicht (400). Zie
+// de `.display`-regel in globals.css, die daarop afgestemd is.
 // ============================================================
+
+const daysOne = Days_One({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const inter = Inter({
+  weight: ['400', '500', '600', '700', '800'],
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   // metadataBase is nodig zodat Next.js relatieve Open Graph-
@@ -61,7 +67,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body>
+      <body className={`${daysOne.variable} ${inter.variable}`}>
         {/* Consent Mode default-signalen: geen tracking, laadt niets
             van Google — zet alleen lokaal vast dat alles standaard
             geweigerd is, vóórdat GA4 ooit geladen kan worden. */}
