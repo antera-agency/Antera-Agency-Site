@@ -55,6 +55,26 @@ a {
   text-decoration: none;
 }
 
+/* ================= FOCUS =================
+   Eén zichtbare focusring voor de hele site. `:focus-visible` (niet
+   `:focus`) betekent dat muisgebruikers niets zien — de ring
+   verschijnt alleen bij toetsenbord- of hulpmiddelnavigatie.
+
+   Waarom twee ringen: de site heeft drie sectie-achtergronden
+   (zwart, goud en wit) en geen enkele merkkleur haalt op alle drie
+   genoeg contrast. Geel is uitstekend op zwart en goud, maar valt
+   op wit vrijwel weg. De donkere binnenring vangt precies dat geval
+   op, zodat er op elke achtergrond minstens één ring duidelijk
+   zichtbaar is.
+
+   Secties met een eigen, al afgestemde focusstijl (FAQ, Calendly)
+   hebben hogere specificiteit en blijven dus ongewijzigd. */
+:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--black);
+}
+
 img {
   max-width: 100%;
   display: block;

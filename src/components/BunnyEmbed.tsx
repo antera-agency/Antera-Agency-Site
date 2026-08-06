@@ -78,6 +78,8 @@ export default function BunnyEmbed({
   posterUrl,
   className,
   showControls = true,
+  title,
+  onRequestPlay,
 }: {
   embedUrl: string;
   // Kaart binnen de horizontale slider-buffer (bandbreedte-gate).
@@ -93,11 +95,25 @@ export default function BunnyEmbed({
   // Hero-gebruik is decoratief en heeft geen zichtbare bediening
   // nodig; portfolio-reels wel.
   showControls?: boolean;
+  // Toegankelijke naam van de iframe. Zonder dit heet elke speler
+  // "Project video" en kan een schermlezer de spelers in de slider
+  // niet uit elkaar houden.
+  title?: string;
+  // Wordt aangeroepen wanneer de bezoeker zélf op de grote
+  // afspeelknop tikt. De ouder maakt deze kaart dan de actieve —
+  // nodig omdat `shouldPlay` hieronder `isActiveSlide` vereist, en
+  // omdat er zo nog steeds maar één video tegelijk speelt.
+  onRequestPlay?: () => void;
 }) {
   const [iframeMounted, setIframeMounted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [muted, setMuted] = useState(true);
+  // De bezoeker heeft expliciet op de grote afspeelknop getikt. Dat
+  // is een bewuste keuze en weegt daarom zwaarder dan de
+  // reduced-motion-voorkeur: die voorkomt dat video's uit zichzelf
+  // beginnen, niet dat je er zelf één kunt starten.
+  const [userRequestedPlay, setUserRequestedPlay] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<BunnyPlayer | null>(null);
 
@@ -108,14 +124,18 @@ export default function BunnyEmbed({
   // i.p.v. dat er dan pas geladen wordt).
   const wantsToMount = isVisible && isSectionVisible && !reducedMotion;
 
-  // De exacte, door de opdracht voorgeschreven formule.
+  // De exacte, door de opdracht voorgeschreven formule — met één
+  // toevoeging: `reducedMotion` blokkeert alleen het automatisch
+  // starten. Heeft de bezoeker zelf op afspelen getikt, dan telt die
+  // keuze zwaarder. Alle overige voorwaarden blijven gelden, dus ook
+  // dan speelt er nooit meer dan één video tegelijk.
   const shouldPlay =
     playerReady &&
     iframeMounted &&
     isSectionVisible &&
     isActiveSlide &&
     !isDragging &&
-    !reducedMotion &&
+    (!reducedMotion || userRequestedPlay) &&
     !userPaused;
 
   useEffect(() => {
@@ -189,27 +209,63 @@ export default function BunnyEmbed({
     iframeRef.current?.requestFullscreen?.();
   }
 
+  // Alles wat er moet gebeuren als de bezoeker zelf op afspelen tikt:
+  // speler laden als dat nog niet gebeurd is, een eventuele eigen
+  // pauze opheffen, en de ouder laten weten dat dít de kaart is die
+  // actief moet worden.
+  function requestPlay() {
+    setIframeMounted(true);
+    setUserRequestedPlay(true);
+    setUserPaused(false);
+    onRequestPlay?.();
+  }
+
   return (
     <div style={wrapperStyle} className={className}>
-      {!iframeMounted && (
+      {/* Deze knop dekt de hele kaart en bestaat in twee gedaanten.
+          Vóór het laden is hij de zichtbare poster met het grote
+          afspeel-icoon. Staat de iframe er al, maar speelt er niets,
+          dan blijft hij als doorzichtige kliklaag liggen — precies
+          over het afspeelknopje dat Bunny zélf in de iframe tekent.
+          Dat is nodig omdat die iframe `pointer-events: none` heeft
+          (anders slikt hij de veegbeweging op), waardoor Bunny's
+          eigen knop niet aanklikbaar is: de muisaanwijzer bleef er
+          zelfs de sleep-cursor tonen. De kliklaag geeft die knop weer
+          een echt doel in onze eigen DOM.
+
+          De sleepbeweging blijft gewoon werken: dit is een normaal
+          element, dus events bubbelen naar de slider, die pas na de
+          drempel van 8px een veeg herkent en de klik daarna
+          onderdrukt. De kleine bedieningsknoppen liggen met z-index 3
+          hierboven en blijven dus ongemoeid. */}
+      {(!iframeMounted || !shouldPlay) && (
         <button
           type="button"
-          onClick={() => setIframeMounted(true)}
+          onClick={requestPlay}
           aria-label="Video afspelen"
           style={{
             ...fillStyle,
             border: 'none',
             cursor: 'pointer',
             padding: 0,
-            backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundColor: posterUrl ? undefined : '#5D4E01',
+            zIndex: 2,
+            ...(iframeMounted
+              ? // Speler staat er al: alleen een onzichtbaar klikvlak,
+                // Bunny's eigen pauzebeeld blijft zichtbaar.
+                { background: 'transparent' }
+              : {
+                  backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundColor: posterUrl ? undefined : '#5D4E01',
+                }),
           }}
         >
-          <span style={playBadgeStyle}>
-            <PlayIcon />
-          </span>
+          {!iframeMounted && (
+            <span style={playBadgeStyle}>
+              <PlayIcon />
+            </span>
+          )}
         </button>
       )}
 
@@ -224,8 +280,18 @@ export default function BunnyEmbed({
           src={`${embedUrl}?autoplay=false&muted=true&loop=true&playsinline=true&preload=true&responsive=true`}
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
-          style={{ ...fillStyle, border: 'none' }}
-          title="Project video"
+          // pointer-events:none — zelfde reden als bij de TikTok-embed
+          // (zie TikTokEmbed.tsx): een iframe vangt aanraakgebaren op
+          // in zijn eigen document, waar ze niet doorbubbelen naar de
+          // pagina eromheen. Omdat deze iframe de hele kaart bedekt
+          // (inset: 0), bereikte een veeg over de video de slider niet
+          // en kon je alleen slepen aan de smalle titelstrook eronder,
+          // die er met z-index 2 bovenop ligt. Alle bediening loopt
+          // toch al via onze eigen knoppen hieronder; die zijn broer/
+          // zus-elementen van deze iframe en blijven dus gewoon
+          // klikbaar.
+          style={{ ...fillStyle, border: 'none', pointerEvents: 'none' }}
+          title={title ?? 'Video'}
         />
       )}
 

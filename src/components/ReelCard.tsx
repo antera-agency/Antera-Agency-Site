@@ -48,6 +48,8 @@ export default function ReelCard({
   isSectionVisible = true,
   posterUrl,
   reducedMotion = false,
+  title,
+  onRequestPlay,
 }: {
   video: ProjectVideoData | undefined | null;
   isDragging: boolean;
@@ -55,6 +57,14 @@ export default function ReelCard({
   isSectionVisible?: boolean;
   posterUrl?: string;
   reducedMotion?: boolean;
+  // Projecttitel, gebruikt als toegankelijke naam van de speler.
+  // Zonder dit heet elke iframe in de slider "Project video" en
+  // kan een schermlezer ze niet uit elkaar houden.
+  title?: string;
+  // Doorgegeven aan de Bunny-speler: laat de ouder weten dat de
+  // bezoeker deze kaart zelf heeft aangezet, zodat die de actieve
+  // kaart wordt.
+  onRequestPlay?: () => void;
 }) {
   const resolved = resolveVideo(video);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +77,16 @@ export default function ReelCard({
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  // prefers-reduced-motion: begin gepauzeerd in plaats van
+  // automatisch af te spelen. Dit loopt bewust via `manuallyPaused`
+  // en niet via een aparte blokkade: zo klopt het label van de
+  // bestaande knop meteen ("Video afspelen") en kan de bezoeker met
+  // diezelfde knop alsnog zelf starten — de voorkeur onderdrukt het
+  // automatisch starten, niet de mogelijkheid om te kijken.
+  useEffect(() => {
+    if (reducedMotion) setManuallyPaused(true);
+  }, [reducedMotion]);
 
   // Observeert of de kaart in of vlak buiten het zichtbare scherm
   // staat. `rootMargin` geeft een horizontale buffer van 300px,
@@ -146,7 +166,11 @@ export default function ReelCard({
           // pas dan toegekend en begint het laden.
           src={isNearViewport ? resolved.url : undefined}
           preload={isNearViewport ? 'metadata' : 'none'}
-          autoPlay
+          title={title ?? 'Video'}
+          // Bij prefers-reduced-motion niet uit zichzelf starten; het
+          // effect hierboven zet de kaart dan op gepauzeerd en de
+          // bestaande knop blijft werken om alsnog af te spelen.
+          autoPlay={!reducedMotion}
           muted
           loop
           playsInline
@@ -158,7 +182,7 @@ export default function ReelCard({
           ref={iframeRef}
           src={`${resolved.embedUrl}?autoplay=1&mute=1&loop=1&playlist=${extractYoutubeId(resolved.embedUrl)}&controls=0&enablejsapi=1&origin=${origin}`}
           allow="autoplay; fullscreen"
-          title="Project video"
+          title={title ?? 'Video'}
         />
       )}
 
@@ -167,7 +191,7 @@ export default function ReelCard({
           ref={iframeRef}
           src={`${resolved.embedUrl}?autoplay=1&muted=1&loop=1&background=1&controls=0`}
           allow="autoplay; fullscreen"
-          title="Project video"
+          title={title ?? 'Video'}
         />
       )}
 
@@ -180,11 +204,13 @@ export default function ReelCard({
           isDragging={isDragging}
           reducedMotion={reducedMotion}
           posterUrl={posterUrl}
+          title={title}
+          onRequestPlay={onRequestPlay}
         />
       )}
 
       {resolved.kind === 'tiktok' && (
-        <TikTokEmbed embedUrl={resolved.embedUrl} dragPaused={isDragging} />
+        <TikTokEmbed embedUrl={resolved.embedUrl} dragPaused={isDragging} title={title} />
       )}
 
       {resolved.kind === 'tiktok-shortlink-unsupported' && (

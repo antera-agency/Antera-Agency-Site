@@ -26,10 +26,14 @@ export default function TikTokEmbed({
   embedUrl,
   dragPaused = false,
   className,
+  title,
 }: {
   embedUrl: string;
   dragPaused?: boolean;
   className?: string;
+  // Toegankelijke naam van de iframe; valt terug op een algemene
+  // omschrijving als er geen projecttitel bekend is.
+  title?: string;
 }) {
   const [activated, setActivated] = useState(false);
   const [manuallyPaused, setManuallyPaused] = useState(false);
@@ -63,7 +67,7 @@ export default function TikTokEmbed({
         <iframe
           src={`${embedUrl}?autoplay=1`}
           allow="autoplay; encrypted-media; fullscreen"
-          title="TikTok video"
+          title={title ? `${title} (TikTok)` : 'TikTok video'}
           style={{ ...fillStyle, pointerEvents: 'none' }}
         />
       )}

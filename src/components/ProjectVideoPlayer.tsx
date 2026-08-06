@@ -15,9 +15,13 @@ import BunnyEmbed from './BunnyEmbed';
 export default function ProjectVideoPlayer({
   video,
   className,
+  title,
 }: {
   video: ProjectVideoData | undefined | null;
   className?: string;
+  // Toegankelijke naam voor de speler. Is er geen titel bekend
+  // (zoals bij de hero-video), dan valt dit terug op 'Video'.
+  title?: string;
 }) {
   const resolved = resolveVideo(video);
 
@@ -31,11 +35,19 @@ export default function ProjectVideoPlayer({
   }, []);
 
   if (resolved.kind === 'file' || resolved.kind === 'direct') {
+    // prefers-reduced-motion: niet uit zichzelf starten. Een
+    // eindeloos herhalende video is doorlopend bewegende content, en
+    // die hoort niet automatisch te beginnen als de bezoeker minder
+    // beweging heeft gevraagd. In plaats daarvan tonen we de
+    // ingebouwde bediening, zodat afspelen wél mogelijk blijft — het
+    // gaat om de keuze, niet om het weghalen van de video.
     return (
       <video
         className={className}
         src={resolved.url}
-        autoPlay
+        title={title ?? 'Video'}
+        autoPlay={!reducedMotion}
+        controls={reducedMotion}
         muted
         loop
         playsInline
@@ -51,7 +63,7 @@ export default function ProjectVideoPlayer({
         className={className}
         src={`${resolved.embedUrl}${separator}${params}`}
         allow="autoplay; fullscreen"
-        title="Project video"
+        title={title ?? 'Video'}
       />
     );
   }
@@ -70,12 +82,13 @@ export default function ProjectVideoPlayer({
         reducedMotion={reducedMotion}
         className={className}
         showControls={false}
+        title={title}
       />
     );
   }
 
   if (resolved.kind === 'tiktok') {
-    return <TikTokEmbed embedUrl={resolved.embedUrl} className={className} />;
+    return <TikTokEmbed embedUrl={resolved.embedUrl} className={className} title={title} />;
   }
 
   if (resolved.kind === 'instagram') {
