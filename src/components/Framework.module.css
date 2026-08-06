@@ -32,25 +32,27 @@
   max-width: 480px;
 }
 
-/* De hoogte moet gelijk zijn aan die van .stageInner hieronder.
-   Stond eerder op 420px terwijl de inhoud 100svh hoog is — daardoor
-   puilde de sectie honderden pixels buiten zijn eigen container en
-   liep hij over de intro-tekst erboven en de loop-notitie eronder
-   heen. De scroll-duur van de animatie verandert hier niet door:
-   die wordt bepaald door de pin-instelling in Framework.tsx
-   (end: '+=500%'), niet door deze hoogte. */
+/* ============================================================
+   MOBIEL EERST — gewone documentstroom.
+   ------------------------------------------------------------
+   Op telefoon en kleine tablet wordt hier niets gepind en niets
+   op schermhoogte gezet. De sectie is precies zo hoog als zijn
+   eigen inhoud, dus hij kan tijdens het scrollen niet van hoogte
+   veranderen — en daarmee verdwijnt de hele klasse problemen die
+   op het toestel gemeten is: het eerste paneel dat over de intro
+   viel, en de sprong bij het in- en uitgaan van de sectie.
+
+   Vanaf 900px (zie onderaan dit bestand) komt de gepinde
+   desktopvertelling er weer bovenop. Dezelfde HTML, andere
+   opmaak — er is dus maar één inhoud, die ook zonder JavaScript
+   volledig leesbaar is.
+   ============================================================ */
 .stage {
   position: relative;
-  height: 100svh;
 }
 
 .stageInner {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
+  position: relative;
 }
 
 /* ---------- scroll-indicator ----------
@@ -130,14 +132,20 @@
   height: 0%;
 }
 
+/* Mobiel: elk paneel is een gewoon blok onder het vorige. Panel 1
+   begint dus fysiek ónder de introtekst — niet "later in een
+   tijdlijn", maar echt eronder in de documentstroom. Overlap is
+   daarmee onmogelijk, ongeacht hoe de tekst afbreekt. */
 .panel {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding-left: 44px;
-  opacity: 0;
+  padding-left: 20px;
+  border-left: 2px solid rgba(255, 216, 0, 0.25);
+}
+
+.panel + .panel {
+  margin-top: 52px;
 }
 
 .panelNum {
@@ -181,4 +189,56 @@
   .panelTitle {
     font-size: 42px;
   }
+}
+
+/* ============================================================
+   DESKTOP (vanaf 900px) — de gepinde vertelling.
+   ------------------------------------------------------------
+   Alles wat met schermhoogte, stapelen en pinnen te maken heeft
+   staat uitsluitend hier. Onder deze breedte bestaat het niet,
+   en maakt Framework.tsx ook geen ScrollTrigger-pin aan.
+   ============================================================ */
+@media (min-width: 900px) {
+  .stage {
+    height: 100svh;
+  }
+
+  .stageInner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .panel {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    padding-left: 44px;
+    border-left: none;
+    opacity: 0;
+  }
+
+  .panel + .panel {
+    margin-top: 0;
+  }
+
+  .progress {
+    display: block;
+  }
+
+  .scrollCue {
+    display: flex;
+  }
+}
+
+/* De voortgangsbalk en de scroll-hint horen bij de gepinde
+   ervaring: zonder pin valt er niets af te tellen en niets te
+   ontdekken door door te scrollen. */
+.progress {
+  display: none;
+}
+
+.scrollCue {
+  display: none;
 }

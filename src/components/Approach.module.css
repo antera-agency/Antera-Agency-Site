@@ -22,18 +22,24 @@
   max-width: 440px;
 }
 
+/* ============================================================
+   MOBIEL EERST — gewone documentstroom.
+   ------------------------------------------------------------
+   Geen pin, geen kunstmatige scrollafstand van 340vh en geen
+   horizontaal schuivende track: de kaarten staan hier onder
+   elkaar. De sectie is zo hoog als zijn eigen inhoud en kan
+   tijdens het scrollen dus niet van hoogte veranderen.
+
+   Vanaf 900px (onderaan dit bestand) komt de gepinde
+   desktopvertelling er weer overheen. Dezelfde HTML, andere
+   opmaak — één inhoud, ook zonder JavaScript volledig leesbaar.
+   ============================================================ */
 .stage {
   position: relative;
-  height: 340vh;
 }
 
 .stageInner {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
+  position: relative;
 }
 
 /* ---------- scroll-indicator ----------
@@ -94,15 +100,13 @@
 
 .track {
   display: flex;
-  gap: 0;
-  will-change: transform;
-  padding-left: 28px;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0 28px;
 }
 
 .panel {
-  flex: 0 0 auto;
-  width: min(80vw, 480px);
-  margin-right: 32px;
+  width: 100%;
   padding: 44px 40px;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.06);
@@ -196,11 +200,92 @@
 }
 
 @media (min-width: 700px) {
-  .panel {
-    width: 420px;
-    padding: 52px 46px;
-  }
   .panelTitle {
     font-size: 29px;
+  }
+}
+
+/* Mobiel is er geen actieve-kaart-logica (die hoort bij de gepinde
+   horizontale track). Elke kaart wordt daarom meteen in zijn
+   volledige staat getoond: gele nummering, uitgeschoven accentlijn
+   en de zachte gloed. Zonder dit zouden alle kaarten er permanent
+   "inactief" uitzien. */
+.num {
+  color: var(--yellow);
+}
+
+.accentLine {
+  width: 44px;
+}
+
+.panel::before {
+  opacity: 1;
+}
+
+.scrollCue {
+  display: none;
+}
+
+/* ============================================================
+   DESKTOP (vanaf 900px) — de gepinde, horizontaal schuivende
+   vertelling. Alles met schermhoogte, pinnen en zijwaartse
+   beweging staat uitsluitend hier; onder deze breedte bestaat het
+   niet en maakt Approach.tsx ook geen ScrollTrigger-pin aan.
+   ============================================================ */
+@media (min-width: 900px) {
+  .stage {
+    height: 340vh;
+  }
+
+  .stageInner {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .track {
+    flex-direction: row;
+    gap: 0;
+    will-change: transform;
+    padding: 0 0 0 28px;
+  }
+
+  .panel {
+    flex: 0 0 auto;
+    width: 420px;
+    margin-right: 32px;
+    padding: 52px 46px;
+  }
+
+  /* Op desktop bepaalt de actieve kaart weer wat oplicht. */
+  .num {
+    color: rgba(255, 216, 0, 0.5);
+  }
+
+  .accentLine {
+    width: 0%;
+  }
+
+  .panel::before {
+    opacity: 0;
+  }
+
+  .panel.isActive::before {
+    opacity: 1;
+  }
+
+  .panel.isActive .num {
+    color: var(--yellow);
+  }
+
+  .panel.isActive .accentLine {
+    width: 44px;
+  }
+
+  .scrollCue {
+    display: flex;
   }
 }

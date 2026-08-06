@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { splitTitleLines } from '@/lib/splitTitleLines';
 import ProjectVideoPlayer from './ProjectVideoPlayer';
 import PortableTextRenderer from './PortableTextRenderer';
@@ -14,6 +15,7 @@ import styles from './Hero.module.css';
 export default function Hero({ data, calendlyUrl }: { data: HomepageData; calendlyUrl?: string }) {
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useDesktopExperience();
 
   useGsapContext(sectionRef, ({ isReducedMotion }) => {
     if (isReducedMotion) return;
@@ -98,6 +100,13 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
     }
 
     // ---------- scroll parallax ----------
+    // Alleen op desktop. Dit zijn scroll-gestuurde (scrubbed)
+    // animaties: ze rekenen mee met de schermhoogte, en die
+    // verandert op mobiel steeds doordat de adresbalk in- en
+    // uitschuift. De binnenkomst-animatie hierboven is niet
+    // scroll-gestuurd en blijft dus overal werken.
+    if (!isDesktop) return;
+
     gsap.to(frameRef.current, {
       yPercent: 18,
       ease: 'none',
@@ -140,7 +149,7 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
         scrub: 0.5,
       },
     });
-  }, []);
+  }, [isDesktop]);
 
   const titleLines = splitTitleLines({
     text: data.heroTitle || '',

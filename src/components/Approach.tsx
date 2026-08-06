@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
@@ -19,6 +20,25 @@ export default function Approach({ data }: { data: HomepageData }) {
   const activePulse = useRef<gsap.core.Tween | null>(null);
   const currentActiveIndex = useRef<number | null>(null);
   const isTouch = useTouchDevice();
+  const isDesktopApproach = useDesktopExperience();
+
+  // ============================================================
+  // Zelfde tweedeling als bij Content Framework.
+  //
+  // Op desktop blijft de gepinde, horizontaal schuivende vertelling
+  // ongewijzigd. Op telefoon en kleine tablet komen dezelfde kaarten
+  // gewoon onder elkaar te staan, zonder pin en zonder de kunstmatige
+  // scrollafstand van 340vh.
+  //
+  // Reden: een gepinde sectie rekent met de schermhoogte, en die
+  // verandert op mobiel continu doordat de adresbalk in- en
+  // uitschuift. Bij Framework was op het toestel te meten dat de
+  // gepinde laag en de inhoud daarbinnen daardoor 135px uit elkaar
+  // liepen. Dit is dezelfde constructie, dus dezelfde oplossing.
+  //
+  // `null` tot de browser gemeten heeft, zodat server-HTML en eerste
+  // render nooit een pin aanmaken.
+  // ============================================================
 
   const panels = (data.approachPanels ?? []).map((panel, i) => ({
     num: String(i + 1).padStart(2, '0'),
@@ -31,6 +51,52 @@ export default function Approach({ data }: { data: HomepageData }) {
     if (isReducedMotion) return;
     gsap.registerPlugin(ScrollTrigger);
 
+    // De introtekst verschijnt in beide varianten op dezelfde manier:
+    // alleen opacity en een kleine verschuiving, dus zonder invloed
+    // op de hoogte van de pagina.
+    gsap.fromTo(
+      '[data-approach="intro"]',
+      { opacity: 0, y: 20 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: '[data-approach="header"]',
+          start: 'top 88%',
+          toggleActions: 'play none none none',
+        },
+      }
+    );
+
+    // ---------- MOBIEL / KLEINE TABLET ----------
+    // Geen pin, geen spacer, geen horizontale track: de kaarten
+    // staan onder elkaar in de gewone documentstroom (zie
+    // Approach.module.css). Alleen een lichte reveal per kaart.
+    if (!isDesktopApproach) {
+      const mobilePanels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
+      mobilePanels.forEach((panel) => {
+        gsap.fromTo(
+          panel,
+          { opacity: 0, y: 24 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: panel,
+              start: 'top 88%',
+              toggleActions: 'play none none none',
+            },
+          }
+        );
+      });
+      return;
+    }
+
+    // ---------- DESKTOP: bestaande gepinde vertelling ----------
     const stage = stageRef.current;
     const stageInner = stageInnerRef.current;
     const track = trackRef.current;
@@ -129,7 +195,9 @@ export default function Approach({ data }: { data: HomepageData }) {
         end: 'bottom bottom',
         scrub: 0.7,
         pin: stageInner,
-        anticipatePin: 1,
+        // Zelfde reden als bij Framework: `anticipatePin` en de
+        // momentum-scroll van Lenis werken elkaar op de telefoon
+        // tegen en veroorzaken een sprong bij het aanpinnen.
         invalidateOnRefresh: true,
         onUpdate: (self) => {
           updateActivePanel();
@@ -142,22 +210,6 @@ export default function Approach({ data }: { data: HomepageData }) {
     panels[0].classList.add(styles.isActive);
     currentActiveIndex.current = 0;
     setPulse(panels[0]);
-
-    gsap.fromTo(
-      '[data-approach="intro"]',
-      { opacity: 0, y: 20 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: '[data-approach="header"]',
-          start: 'top 88%',
-          toggleActions: 'play none none none',
-        },
-      }
-    );
 
     gsap.to('[data-approach="orb"]', {
       y: 120,
@@ -174,7 +226,7 @@ export default function Approach({ data }: { data: HomepageData }) {
     return () => {
       activePulse.current?.kill();
     };
-  }, [panels.length]);
+  }, [panels.length, isDesktopApproach]);
 
   return (
     <section className={styles.niches} id="approachSection" ref={sectionRef}>
