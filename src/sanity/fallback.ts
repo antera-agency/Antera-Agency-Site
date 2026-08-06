@@ -18,6 +18,20 @@ import { toPortableText, paragraphsToPortableText } from '@/lib/portableText';
 // deze fallback per veld overschreven door jouw eigen tekst.
 // ============================================================
 
+// ------------------------------------------------------------
+// Eén bron voor de boekings-URL en het contactadres.
+//
+// De Calendly-popup wordt herkend op URL, niet op knoptekst (zie
+// ADR-006 en src/lib/calendly.ts): CtaLink vergelijkt de CTA-URL
+// met siteSettings.calendlyUrl. Stonden die twee als losse
+// letterlijke strings in dit bestand, dan kon een van beide gaan
+// afwijken en opende de popup stilletjes niet meer — precies wat
+// hier eerder misging. Door beide uit dezelfde constante te laten
+// komen, kan die mismatch in de fallback-content niet ontstaan.
+// ------------------------------------------------------------
+const CALENDLY_URL = 'https://calendly.com/antera-agency/30min';
+const CONTACT_EMAIL = 'hello@anteraagency.nl';
+
 export const fallbackHomepage: HomepageData = {
   heroEyebrow: 'ANTERA AGENCY · TILBURG',
   heroTitle:
@@ -27,7 +41,7 @@ export const fallbackHomepage: HomepageData = {
     'Voor ambitieuze bedrijven en brands die hun social media serieus willen inzetten. Wij bouwen de strategie, filmen en posten — met een uitvoering die opvalt en een stijl die niet aanvoelt als reclame.'
   ),
   heroButtons: [
-    { label: 'Boek een gesprek', url: '#contact', style: 'primary' },
+    { label: 'Boek een gesprek', url: CALENDLY_URL, style: 'primary' },
     { label: 'Bekijk ons werk', url: '#portfolio', style: 'secondary' },
   ],
 
@@ -189,8 +203,8 @@ export const fallbackHomepage: HomepageData = {
     'Geen verplichtingen, geen verkooppraatje. Gewoon een gesprek over wat wel en niet werkt voor jullie merk.'
   ),
   ctaButtons: [
-    { label: 'Boek een gesprek', url: '#', style: 'primary' },
-    { label: 'Stuur een e-mail', url: 'mailto:info@antera.agency', style: 'secondary' },
+    { label: 'Boek een gesprek', url: CALENDLY_URL, style: 'primary' },
+    { label: 'Stuur een e-mail', url: `mailto:${CONTACT_EMAIL}`, style: 'secondary' },
   ],
 
   // SEO-fallback: dit is de titel/omschrijving die Google toont
@@ -228,7 +242,7 @@ export const fallbackServices: ServiceData[] = [];
 export const fallbackTestimonials: TestimonialData[] = [];
 
 export const fallbackContactInfo: ContactInfoData = {
-  email: 'antera.agency@gmail.com',
+  email: CONTACT_EMAIL,
   phone: '(+31) 636476717',
   location: 'Tilburg',
   socialLinks: [],
@@ -237,8 +251,8 @@ export const fallbackContactInfo: ContactInfoData = {
 export const fallbackSiteSettings: SiteSettingsData = {
   siteTitle: 'Antera Agency',
   navCtaLabel: 'Boek een gesprek',
-  navCtaUrl: '#contact',
-  calendlyUrl: 'https://calendly.com/antera-agency/30min',
+  navCtaUrl: CALENDLY_URL,
+  calendlyUrl: CALENDLY_URL,
   logoCarouselLabel: 'Merken die ons vertrouwen',
   brands: [{ name: 'MERK 01' }, { name: 'MERK 02' }, { name: 'MERK 03' }],
 };

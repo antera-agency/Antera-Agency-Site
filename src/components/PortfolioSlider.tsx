@@ -332,8 +332,8 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
         <div className={styles.eyebrow}>PORTFOLIO</div>
         <h2 className={`display ${styles.title}`}>Een selectie van ons werk</h2>
         <p className={styles.intro}>
-          Sleep zelf door de video&apos;s, of laat ze automatisch langslopen. Tik op een reel
-          om &apos;m zelf op pauze te zetten.
+          Sleep zelf door de video&apos;s, of laat ze automatisch langslopen. Met de
+          pauzeknop op een reel zet je &apos;m stil.
         </p>
       </div>
 

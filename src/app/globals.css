@@ -122,7 +122,15 @@ section {
   }
 }
 
-/* ---------- shared buttons ---------- */
+/* ---------- shared buttons ----------
+   Deze klassen worden zowel op een <a> als op een <button> gezet:
+   CtaLink.tsx rendert een <button> zodra de CTA-URL naar de
+   geconfigureerde Calendly-URL wijst (zie ADR-006). Een <button>
+   erft géén font-family van <body> en houdt zijn eigen UA-rand,
+   dus zonder onderstaande regels zag die knop er anders uit dan
+   een identiek ogende link-CTA ernaast. Deze eigenschappen zetten
+   beide varianten weer gelijk — voor een <a> zijn ze simpelweg de
+   waarden die daar toch al golden. */
 .btn-primary,
 .btn-secondary {
   transition:
@@ -132,9 +140,14 @@ section {
   position: relative;
   overflow: hidden;
   display: inline-block;
+  border: 0;
   border-radius: 100px;
+  font-family: var(--font-body), sans-serif;
   font-weight: 700;
   font-size: 15px;
+  line-height: inherit;
+  text-align: center;
+  cursor: pointer;
   padding: 15px 28px;
 }
 
@@ -209,13 +222,20 @@ section {
   width: auto;
 ;
 }
+/* Zelfde situatie als .btn-primary/.btn-secondary hierboven: deze
+   klasse staat op een <a> óf op een <button> (CtaLink.tsx). */
 .nav-cta {
   background: var(--yellow);
   color: var(--black);
   padding: 9px 18px;
+  border: 0;
   border-radius: 100px;
+  font-family: var(--font-body), sans-serif;
   font-weight: 700;
   font-size: 14px;
+  line-height: inherit;
+  text-align: center;
+  cursor: pointer;
   transition: transform 0.4s var(--ease-premium);
   display: inline-block;
 }

@@ -3,10 +3,15 @@
    --yellow, --gold, --ease-premium) — geen nieuwe kleuren.
    ============================================================ */
 
+/* z-index moet boven de cookiebanner (1000, zie CookieBanner.module.css)
+   liggen: die staat fixed onderaan het scherm en dekte anders bij een
+   eerste bezoek de onderrand van deze dialoog af — op mobiel precies
+   waar Calendly zijn bevestigingsknoppen toont. De intro-overlay
+   (LoadingScreen, 9999) blijft hier bewust bovenop. */
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 1100;
   background: rgba(10, 10, 8, 0.72);
   backdrop-filter: blur(6px);
   display: flex;
