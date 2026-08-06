@@ -83,6 +83,28 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // ============================================================
+  // Eigenaarschap van de actieve kaart.
+  //
+  // Normaal bepaalt de midden-berekening hieronder welke kaart
+  // speelt. Maar tikt de bezoeker zélf op afspelen, dan is dat een
+  // expliciete keuze — en die werd tot nu toe binnen ~100 ms weer
+  // overschreven door diezelfde berekening (die draait elke 6
+  // frames). De video startte dan even en viel meteen weer stil.
+  //
+  // Deze ref onthoudt die keuze. Zolang hij gezet is, laat de
+  // automatiek activeIndex met rust. Hij wordt weer losgelaten
+  // zodra de keuze niet langer zinvol is:
+  //   - de gekozen kaart is uit beeld gescrold;
+  //   - de bezoeker sleept bewust naar een andere kaart;
+  //   - er wordt op een andere kaart afspelen getikt;
+  //   - de layout wordt opnieuw gemeten (resize).
+  //
+  // Het blijft één enkel getal: dit onderdrukt alleen het
+  // overschrijven, het maakt nooit een tweede kaart actief.
+  // ============================================================
+  const manualActiveRef = useRef<number | null>(null);
+
+  // ============================================================
   // Is de portfolio-sectie zelf (verticaal) in beeld? Los van de
   // per-kaart horizontale zichtbaarheid binnen de slider — een
   // bezoeker kan verder naar beneden gescrold zijn (bijv. naar de
@@ -216,6 +238,26 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     let rafId: number;
     let activeCheckCounter = 0;
 
+    // ============================================================
+    // Staat er een kaart schermvullend open?
+    //
+    // Volledig scherm verandert alleen wáár een element getekend
+    // wordt (de top layer) — in de DOM blijft het een kind van deze
+    // viewport. Alle luisteraars hieronder blijven dus gewoon
+    // meeluisteren: een muisbeweging in volledig scherm werd nog als
+    // sleepbeweging gelezen (waardoor de video pauzeerde en de
+    // doorzichtige kliklaag terugkwam), en de klik-onderdrukking in
+    // de capture-fase at de kliks op de eigen bedieningsknoppen op
+    // vóórdat ze die knoppen bereikten.
+    //
+    // In volledig scherm valt er niets horizontaal te slepen, dus
+    // daar houdt de slider zich helemaal afzijdig.
+    // ============================================================
+    function isFullscreenOpen() {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      return Boolean(doc.fullscreenElement ?? doc.webkitFullscreenElement);
+    }
+
     function wrap(offset: number) {
       // Houdt de offset binnen (-unitWidth, 0], zodat het overgangs-
       // moment altijd exact samenvalt met een identieke kopie van de
@@ -233,6 +275,23 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       if (!viewport) return;
       const viewportRect = viewport.getBoundingClientRect();
       const centerX = viewportRect.left + viewportRect.width / 2;
+
+      // Heeft de bezoeker zelf een kaart aangezet, dan blijft die de
+      // actieve zolang hij nog in beeld is. Pas als hij helemaal
+      // langs de rand verdwenen is, neemt de midden-berekening het
+      // weer over — dan is de keuze immers niet meer zichtbaar en zou
+      // er anders onzichtbaar doorgespeeld worden.
+      const manual = manualActiveRef.current;
+      if (manual !== null) {
+        const manualEl = slideRefs.current[manual];
+        if (manualEl) {
+          const manualRect = manualEl.getBoundingClientRect();
+          const stillInView =
+            manualRect.right > viewportRect.left && manualRect.left < viewportRect.right;
+          if (stillInView) return;
+        }
+        manualActiveRef.current = null;
+      }
 
       let closestIndex: number | null = null;
       let closestDist = Infinity;
@@ -281,6 +340,10 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     // moveDrag, zodra de drempel gehaald is — een tik komt hier dus
     // langs zonder dat er iets beweegt.
     const startDrag = (clientX: number) => {
+      // Geen sleepbeweging starten terwijl er een kaart schermvullend
+      // openstaat: dat zou de video pauzeren en de kliklaag over de
+      // bediening terugbrengen.
+      if (isFullscreenOpen()) return;
       pointerDown = true;
       dragging = false;
       suppressClick = false;
@@ -300,6 +363,10 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
         dragging = true;
         suppressClick = true;
         setIsDragging(true);
+        // De bezoeker sleept nu bewust naar iets anders; een eerdere
+        // handmatige keuze is daarmee achterhaald en de automatische
+        // midden-selectie mag het weer overnemen.
+        manualActiveRef.current = null;
         dragStartX = clientX;
         lastX = clientX;
       }
@@ -348,6 +415,13 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     // dus ongehinderd door naar de play-, pauze-, geluid- en
     // volledig-scherm-knoppen.
     const onClickCapture = (e: MouseEvent) => {
+      // In volledig scherm nooit onderdrukken: de kliks die hier
+      // langskomen zijn dan per definitie kliks op de eigen
+      // bedieningsknoppen, niet de nasleep van een veeg.
+      if (isFullscreenOpen()) {
+        suppressClick = false;
+        return;
+      }
       if (!suppressClick) return;
       suppressClick = false;
       // `detail` is 0 bij een klik die via het toetsenbord is
@@ -394,9 +468,16 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     viewport.addEventListener('touchcancel', onTouchCancel);
     viewport.addEventListener('click', onClickCapture, true);
     window.addEventListener('blur', resetGesture);
+    // Bij het in- of uitstappen van volledig scherm een eventueel
+    // half afgemaakt gebaar opruimen: anders kan isDragging op waar
+    // blijven staan en speelt de video in volledig scherm niet af.
+    document.addEventListener('fullscreenchange', resetGesture);
+    document.addEventListener('webkitfullscreenchange', resetGesture);
 
     return () => {
       cancelAnimationFrame(rafId);
+      document.removeEventListener('fullscreenchange', resetGesture);
+      document.removeEventListener('webkitfullscreenchange', resetGesture);
       // Loopt dit effect opnieuw (bijv. bij een resize van loop naar
       // static) terwijl er nog gesleept wordt, dan blijft isDragging
       // anders op waar staan en speelt er daarna niets meer.
@@ -452,6 +533,9 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       }
     }
 
+    // De layout is opnieuw gemeten; een eerdere handmatige keuze slaat
+    // dan niet meer per se op dezelfde zichtbare kaart.
+    manualActiveRef.current = null;
     setActiveIndex(closestIndex);
     // `slides` wordt elke render opnieuw opgebouwd; de lengte is de
     // enige eigenschap die hier iets verandert.
@@ -500,7 +584,14 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
                       }
                       reducedMotion={reducedMotion}
                       title={slide.title}
-                      onRequestPlay={() => setActiveIndex(i)}
+                      onRequestPlay={() => {
+                        // Expliciete keuze: onthouden én meteen
+                        // toepassen. Een eerdere keuze op een andere
+                        // kaart wordt hierdoor vervangen, nooit
+                        // aangevuld — er speelt er dus altijd één.
+                        manualActiveRef.current = i;
+                        setActiveIndex(i);
+                      }}
                     />
                   ) : slide.project.thumbnail ? (
                     <Image
