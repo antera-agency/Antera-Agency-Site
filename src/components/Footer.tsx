@@ -31,9 +31,16 @@ export default function Footer({ contact }: { contact: ContactInfoData }) {
         <div>
           © ANTERA AGENCY 2026 <CookieSettingsButton />
         </div>
-        <div className={styles.social}>
-          {socialLinks.length > 0 ? (
-            socialLinks.map((link) => (
+        {/* Alleen echte profielen tonen. Er stonden hier eerder twee
+            placeholder-iconen met href="#": die waren focusbaar,
+            werden als link aangekondigd en brachten de bezoeker bij
+            een klik terug naar de bovenkant van de pagina. Zolang er
+            in Sanity (Contactgegevens → Social media links) niets is
+            ingevuld, tonen we dus liever niets dan een link die
+            nergens heen gaat. */}
+        {socialLinks.length > 0 && (
+          <div className={styles.social}>
+            {socialLinks.map((link) => (
               <a
                 key={link.platform}
                 href={link.url}
@@ -42,21 +49,11 @@ export default function Footer({ contact }: { contact: ContactInfoData }) {
                 aria-label={link.platform}
               >
                 {PLATFORM_ICONS[link.platform.toLowerCase()] ??
-  link.platform.slice(0, 2).toUpperCase()}
+                  link.platform.slice(0, 2).toUpperCase()}
               </a>
-            ))
-          ) : (
-            <>
-             <a href="#" aria-label="TikTok">
-  <FaTiktok />
-</a>
-
-<a href="#" aria-label="Instagram">
-  <FaInstagram />
-</a>
-            </>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </footer>
   );

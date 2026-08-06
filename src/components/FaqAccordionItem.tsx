@@ -35,10 +35,19 @@ export default function FaqAccordionItem({
           </span>
         </button>
       </h3>
+      {/* Een dichtgeklapt antwoord is visueel weg (grid-template-rows
+          0fr), maar stond zonder `inert` nog wél in de tabvolgorde en
+          in de toegankelijkheidsboom: schermlezers lazen alle
+          antwoorden voor — in tegenspraak met aria-expanded="false" —
+          en toetsenbordgebruikers landden op links in een onzichtbaar
+          antwoord. `inert` haalt het blok uit beide zolang het dicht
+          is, precies zoals het menupaneel in NavMenu.tsx dat al doet.
+          De open/dicht-animatie verandert hier niet door. */}
       <div
         id={contentId}
         role="region"
         aria-label={question}
+        inert={!isOpen}
         className={`${styles.answerWrap} ${isOpen ? styles.answerWrapOpen : ''}`}
       >
         <div className={styles.answerInner}>

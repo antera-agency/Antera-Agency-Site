@@ -10,9 +10,17 @@ export default function CookieBanner({
   onDecline: () => void;
 }) {
   return (
+    // `role="region"`, geen `dialog`: deze balk blokkeert de pagina
+    // niet, verplaatst de focus niet en heeft geen sluitknop — hij is
+    // dus geen dialoogvenster. Met `role="dialog"` beloofde hij
+    // schermlezergebruikers gedrag dat er niet is (focus die naar
+    // binnen springt, Escape die sluit). Een benoemde regio klopt wel
+    // en blijft vindbaar als landmark; `aria-live` zorgt dat hij nog
+    // steeds wordt aangekondigd zodra hij verschijnt. Aan de
+    // toestemmingslogica zelf verandert niets.
     <div
       className={styles.banner}
-      role="dialog"
+      role="region"
       aria-live="polite"
       aria-label="Cookie-toestemming"
     >

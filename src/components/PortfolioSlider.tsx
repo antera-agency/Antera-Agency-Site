@@ -193,7 +193,15 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
 
     const unitWidth = unitWidthRef.current || track.scrollWidth / repeatCount;
 
+    // Aanwijzer staat op de kaart, maar het is nog niet per se een
+    // sleepbeweging: pas voorbij DRAG_THRESHOLD is dat zeker. Tot
+    // die grens blijft de track stilstaan, zodat een gewone tik de
+    // knop eronder gewoon bereikt.
+    let pointerDown = false;
     let dragging = false;
+    // Wordt waar zodra de drempel is overschreden; onderdrukt dan de
+    // klik die de browser na het loslaten alsnog zou versturen.
+    let suppressClick = false;
     let dragStartX = 0;
     let dragStartOffset = 0;
     let currentOffset = 0;
@@ -201,6 +209,10 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     let lastX = 0;
     let isPaused = false;
     const baseSpeed = 0.45;
+    // Ruim onder de aanraak-slop van de browser, dus de sleepbeweging
+    // voelt niet trager — maar genoeg om de paar pixels trilling van
+    // een echte klik of tik op te vangen.
+    const DRAG_THRESHOLD = 8;
     let rafId: number;
     let activeCheckCounter = 0;
 
@@ -239,7 +251,11 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     }
 
     function frame() {
-      if (!dragging) {
+      // Ook stilhouden zolang de aanwijzer neergedrukt is maar de
+      // drempel nog niet gehaald: anders zou de kaart tijdens een tik
+      // alsnog onder de vinger vandaan schuiven en gaat de klik
+      // verloren.
+      if (!dragging && !pointerDown) {
         if (!isPaused) {
           currentOffset -= baseSpeed;
         }
@@ -261,16 +277,33 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     }
     rafId = requestAnimationFrame(frame);
 
+    // Alleen het startpunt vastleggen. De sleepbeweging begint pas in
+    // moveDrag, zodra de drempel gehaald is — een tik komt hier dus
+    // langs zonder dat er iets beweegt.
     const startDrag = (clientX: number) => {
-      dragging = true;
-      setIsDragging(true);
+      pointerDown = true;
+      dragging = false;
+      suppressClick = false;
       velocity = 0;
       dragStartX = clientX;
       lastX = clientX;
       dragStartOffset = currentOffset;
     };
     const moveDrag = (clientX: number) => {
-      if (!dragging) return;
+      if (!pointerDown) return;
+
+      if (!dragging) {
+        if (Math.abs(clientX - dragStartX) < DRAG_THRESHOLD) return;
+        // Drempel gehaald: dit is een sleepbeweging. Het startpunt
+        // wordt hier opnieuw gezet, zodat de track niet met een
+        // sprongetje ter grootte van de drempel begint.
+        dragging = true;
+        suppressClick = true;
+        setIsDragging(true);
+        dragStartX = clientX;
+        lastX = clientX;
+      }
+
       const delta = clientX - dragStartX;
       currentOffset = dragStartOffset + delta;
       velocity = clientX - lastX;
@@ -278,15 +311,59 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       track!.style.transform = `translateX(${currentOffset}px)`;
     };
     const endDrag = () => {
+      const wasDragging = dragging;
+      pointerDown = false;
       dragging = false;
-      currentOffset = wrap(currentOffset);
-      setIsDragging(false);
+      if (wasDragging) {
+        currentOffset = wrap(currentOffset);
+        setIsDragging(false);
+      }
+    };
+
+    // Afbreken van een gebaar dat nooit netjes eindigt: het systeem
+    // neemt de aanraking over (touchcancel bij een inkomend gesprek
+    // of een terug-veeg), of het venster verliest de focus terwijl de
+    // muisknop nog ingedrukt is — in beide gevallen komt er geen
+    // touchend/mouseup meer binnen. Zonder deze reset bleven
+    // pointerDown en dragging hangen: de rAF-lus stond dan permanent
+    // stil en isDragging bleef waar, waardoor er daarna geen enkele
+    // video meer speelde. Anders dan endDrag wist dit ook
+    // suppressClick en velocity, want er volgt geen klik en er hoort
+    // geen restvaart overgenomen te worden.
+    const resetGesture = () => {
+      const wasDragging = dragging;
+      pointerDown = false;
+      dragging = false;
+      suppressClick = false;
+      velocity = 0;
+      if (wasDragging) {
+        currentOffset = wrap(currentOffset);
+        setIsDragging(false);
+      }
+    };
+
+    // Capture-fase: een klik die uit een sleepbeweging voortkomt
+    // wordt hier tegengehouden vóórdat hij de knop eronder bereikt.
+    // Een gewone tik heeft suppressClick nooit op waar staan en gaat
+    // dus ongehinderd door naar de play-, pauze-, geluid- en
+    // volledig-scherm-knoppen.
+    const onClickCapture = (e: MouseEvent) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      // `detail` is 0 bij een klik die via het toetsenbord is
+      // veroorzaakt (Enter of spatie op een knop). Die kan per
+      // definitie niet uit een sleepbeweging komen, dus die mag nooit
+      // worden tegengehouden — anders slikt de eerste Enter na een
+      // sleepbeweging de bediening op.
+      if (e.detail === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
     };
 
     const onMouseEnter = () => (isPaused = true);
     const onMouseLeave = () => {
       isPaused = false;
-      if (dragging) endDrag();
+      if (pointerDown) endDrag();
     };
     const onMouseDown = (e: MouseEvent) => startDrag(e.clientX);
     const onMouseMove = (e: MouseEvent) => moveDrag(e.clientX);
@@ -301,6 +378,10 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       endDrag();
       setTimeout(() => (isPaused = false), 1200);
     };
+    const onTouchCancel = () => {
+      resetGesture();
+      isPaused = false;
+    };
 
     viewport.addEventListener('mouseenter', onMouseEnter);
     viewport.addEventListener('mouseleave', onMouseLeave);
@@ -310,9 +391,19 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     viewport.addEventListener('touchstart', onTouchStart, { passive: true });
     viewport.addEventListener('touchmove', onTouchMove, { passive: true });
     viewport.addEventListener('touchend', onTouchEnd);
+    viewport.addEventListener('touchcancel', onTouchCancel);
+    viewport.addEventListener('click', onClickCapture, true);
+    window.addEventListener('blur', resetGesture);
 
     return () => {
       cancelAnimationFrame(rafId);
+      // Loopt dit effect opnieuw (bijv. bij een resize van loop naar
+      // static) terwijl er nog gesleept wordt, dan blijft isDragging
+      // anders op waar staan en speelt er daarna niets meer.
+      resetGesture();
+      window.removeEventListener('blur', resetGesture);
+      viewport.removeEventListener('click', onClickCapture, true);
+      viewport.removeEventListener('touchcancel', onTouchCancel);
       viewport.removeEventListener('mouseenter', onMouseEnter);
       viewport.removeEventListener('mouseleave', onMouseLeave);
       viewport.removeEventListener('mousedown', onMouseDown);
@@ -323,6 +414,48 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
       viewport.removeEventListener('touchend', onTouchEnd);
     };
   }, [phase, repeatCount, reducedMotion]);
+
+  // ============================================================
+  // Actieve kaart in de 'static'-fase.
+  //
+  // De rAF-lus hierboven draait alleen in de loop-fase, dus in
+  // static werd updateActiveCard() nooit aangeroepen en bleef
+  // activeIndex op null staan. Omdat null gelezen werd als "geen
+  // beperking", speelden in die situatie alle zichtbare video's
+  // tegelijk — terwijl er ook hier maar één tegelijk hoort te
+  // spelen.
+  //
+  // In static beweegt er niets, dus één meting per layout volstaat;
+  // een eigen animatielus is niet nodig. Bij één project komt die
+  // ene kaart er automatisch uit. Handmatig pauzeren blijft
+  // ongemoeid: dat zit in ReelCard en staat los van deze keuze.
+  // ============================================================
+  useEffect(() => {
+    if (phase !== 'static') return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const centerX = viewportRect.left + viewportRect.width / 2;
+
+    let closestIndex: number | null = null;
+    let closestDist = Infinity;
+
+    for (let i = 0; i < slides.length; i++) {
+      const el = slideRefs.current[i];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const dist = Math.abs(rect.left + rect.width / 2 - centerX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIndex = i;
+      }
+    }
+
+    setActiveIndex(closestIndex);
+    // `slides` wordt elke render opnieuw opgebouwd; de lengte is de
+    // enige eigenschap die hier iets verandert.
+  }, [phase, slides.length, resizeTick]);
 
   const showLoopChrome = phase === 'loop' && !reducedMotion;
 
@@ -358,7 +491,7 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
                     <ReelCard
                       video={slide.project.video}
                       isDragging={isDragging}
-                      isActive={activeIndex === null || activeIndex === i}
+                      isActive={activeIndex === i}
                       isSectionVisible={isSectionVisible}
                       posterUrl={
                         slide.project.thumbnail
@@ -366,6 +499,8 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
                           : undefined
                       }
                       reducedMotion={reducedMotion}
+                      title={slide.title}
+                      onRequestPlay={() => setActiveIndex(i)}
                     />
                   ) : slide.project.thumbnail ? (
                     <Image
