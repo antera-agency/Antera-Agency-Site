@@ -16,7 +16,7 @@ export const BUSINESS = {
   legalName: 'Antera Agency',
   description:
     'Antera Agency is een social media & short-form content agency in Tilburg, actief in heel Noord-Brabant. Wij maken short-form video content, social media content en video marketing die klanten oplevert.',
-  email: 'antera.agency@gmail.com',
+  email: 'hello@anteraagency.nl',
   telephone: '+31636476717',
   city: 'Tilburg',
   region: 'Noord-Brabant',
