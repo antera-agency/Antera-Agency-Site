@@ -36,8 +36,17 @@ body {
   overflow-x: clip;
 }
 
+/* Days One bestaat maar in één gewicht (400). Koppen zijn h1/h2/h3
+   en zouden zonder deze regel het browser-standaardgewicht `bold`
+   erven; de browser maakt dat gewicht dan zelf na (synthetisch vet),
+   wat bij dit ronde display-font uitgesmeerde letters oplevert. Met
+   Arial Black als fallback viel dat niet op, omdat die van zichzelf
+   al extra zwaar is. Hier dus expliciet het enige gewicht dat het
+   font écht heeft — geen ontwerpkeuze, maar de voorwaarde om Days
+   One weer te geven zoals bedoeld. */
 .display {
   font-family: var(--font-display), sans-serif;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
