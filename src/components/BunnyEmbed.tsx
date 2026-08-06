@@ -43,6 +43,38 @@ interface BunnyPlayer {
   unmute: () => void;
 }
 
+// ============================================================
+// Volledig scherm: kleine typering + helpers.
+//
+// De ongeprefixte API is de standaard en werkt in Chrome, Firefox,
+// Edge en Safari 16.4+. De `webkit`-variant staat er alleen voor
+// oudere Safari-versies bij; verder wordt er niets geprefixt.
+// ============================================================
+type FullscreenElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+
+type FullscreenDocument = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+  webkitFullscreenEnabled?: boolean;
+};
+
+function getFullscreenElement(): Element | null {
+  const doc = document as FullscreenDocument;
+  return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+}
+
+// requestFullscreen/exitFullscreen geven een promise terug die de
+// browser mag weigeren (bijvoorbeeld zonder gebruikersinteractie).
+// Die afwijzing hoeft nergens toe te leiden, maar mag ook niet als
+// onafgehandelde fout in de console blijven staan.
+function settle(result: Promise<void> | void) {
+  if (result && typeof result.catch === 'function') {
+    result.catch(() => {});
+  }
+}
+
 let playerJsLoadPromise: Promise<void> | null = null;
 
 function loadPlayerJs(): Promise<void> {
@@ -116,6 +148,16 @@ export default function BunnyEmbed({
   const [userRequestedPlay, setUserRequestedPlay] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<BunnyPlayer | null>(null);
+  // Volledig scherm wordt op déze wrapper aangevraagd, niet op de
+  // iframe — zie de uitleg bij toggleFullscreen hieronder.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Niet elk apparaat kan een willekeurig element schermvullend
+  // tonen; iOS Safari kent die API bijvoorbeeld niet. Dat weten we
+  // pas in de browser, dus het wordt hieronder gemeten. Zolang het
+  // niet ondersteund wordt, tonen we de knop helemaal niet in plaats
+  // van een knop die niets doet.
+  const [fullscreenSupported, setFullscreenSupported] = useState(false);
 
   // Mount-voorwaarde: dichtbij/zichtbaar genoeg om alvast op te
   // warmen. Bewust ZONDER isActiveSlide/isDragging/userPaused —
@@ -205,9 +247,63 @@ export default function BunnyEmbed({
     });
   }
 
-  function goFullscreen() {
-    iframeRef.current?.requestFullscreen?.();
+  // ============================================================
+  // Volledig scherm.
+  //
+  // Dit ging eerder mis doordat de iframe zélf schermvullend werd
+  // gemaakt. Alles wat je nodig hebt om de video te bedienen —
+  // pauze, geluid, en de knop om er weer uit te komen — zit als
+  // broer/zus náást die iframe, dus die verdwenen buiten beeld: het
+  // volledige scherm bevat alleen het element dat je aanwijst. En
+  // omdat de iframe `pointer-events: none` heeft, was Bunny's eigen
+  // bediening daarbinnen óók dood. Resultaat: een schermvullende
+  // video zonder enige knop, alleen met Escape te verlaten.
+  //
+  // Nu vragen we het volledige scherm aan op de wrapper. Die bevat
+  // de iframe én alle eigen knoppen, dus die blijven gewoon
+  // zichtbaar en klikbaar. De iframe houdt zijn pointer-events uit,
+  // waardoor Bunny's eigen (niet-werkende) bedieningslaag ook in
+  // volledig scherm niet tevoorschijn komt.
+  // ============================================================
+  function toggleFullscreen() {
+    const doc = document as FullscreenDocument;
+    const wrapper = wrapperRef.current as FullscreenElement | null;
+    if (!wrapper) return;
+
+    if (getFullscreenElement() === wrapper) {
+      settle(doc.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+      return;
+    }
+    settle(wrapper.requestFullscreen?.() ?? wrapper.webkitRequestFullscreen?.());
   }
+
+  // De browser kan het volledige scherm ook op eigen houtje sluiten
+  // (Escape, een systeemgebaar, of doordat een ander element het
+  // overneemt). Daarom leest de knop zijn stand niet uit een eigen
+  // vlag maar uit de browser zelf.
+  useEffect(() => {
+    function syncFullscreenState() {
+      setIsFullscreen(getFullscreenElement() === wrapperRef.current);
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenState);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const doc = document as FullscreenDocument;
+    const wrapper = wrapperRef.current as FullscreenElement | null;
+    setFullscreenSupported(
+      Boolean(
+        (doc.fullscreenEnabled || doc.webkitFullscreenEnabled) &&
+          wrapper &&
+          (wrapper.requestFullscreen || wrapper.webkitRequestFullscreen)
+      )
+    );
+  }, [iframeMounted]);
 
   // Alles wat er moet gebeuren als de bezoeker zelf op afspelen tikt:
   // speler laden als dat nog niet gebeurd is, een eventuele eigen
@@ -221,7 +317,26 @@ export default function BunnyEmbed({
   }
 
   return (
-    <div style={wrapperStyle} className={className}>
+    <div
+      ref={wrapperRef}
+      // In volledig scherm wordt dit element zo groot als het scherm,
+      // terwijl de video zijn eigen 9:16-verhouding houdt. Zonder
+      // achtergrond zouden de balken ernaast doorzichtig zijn.
+      //
+      // De cursor wordt hier expliciet neutraal gezet. Volledig
+      // scherm verandert alleen waar dit element getékend wordt (de
+      // top layer); in de DOM blijft het gewoon een kind van
+      // `.viewport`, en die heeft `cursor: grab`. Dat erfde door tot
+      // over het hele scherm en suggereerde dat je de video kon
+      // slepen — terwijl er in volledig scherm juist niets te slepen
+      // valt.
+      style={
+        isFullscreen
+          ? { ...wrapperStyle, background: '#000', cursor: 'default' }
+          : wrapperStyle
+      }
+      className={className}
+    >
       {/* Deze knop dekt de hele kaart en bestaat in twee gedaanten.
           Vóór het laden is hij de zichtbare poster met het grote
           afspeel-icoon. Staat de iframe er al, maar speelt er niets,
@@ -296,7 +411,19 @@ export default function BunnyEmbed({
       )}
 
       {iframeMounted && showControls && (
-        <div style={controlsRowStyle}>
+        // In volledig scherm expliciet bovenaan zetten en de
+        // pointer-events hard aanzetten. Deze knoppen zijn de énige
+        // manier om daar te pauzeren, te dempen of het volledige
+        // scherm weer te verlaten, dus er mag nooit een laag
+        // overheen komen te liggen — ook niet de doorzichtige
+        // kliklaag die verschijnt zodra het afspelen even stopt.
+        <div
+          style={
+            isFullscreen
+              ? { ...controlsRowStyle, zIndex: 10, pointerEvents: 'auto', cursor: 'auto' }
+              : controlsRowStyle
+          }
+        >
           <button
             type="button"
             onClick={toggleUserPaused}
@@ -315,14 +442,17 @@ export default function BunnyEmbed({
           >
             {muted ? <MutedIcon /> : <UnmutedIcon />}
           </button>
-          <button
-            type="button"
-            onClick={goFullscreen}
-            aria-label="Volledig scherm"
-            style={ctrlButtonStyle}
-          >
-            <FullscreenIcon />
-          </button>
+          {fullscreenSupported && (
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? 'Volledig scherm sluiten' : 'Volledig scherm'}
+              aria-pressed={isFullscreen}
+              style={ctrlButtonStyle}
+            >
+              {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -433,6 +563,19 @@ function FullscreenIcon() {
       <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
       <path d="M3 16v3a2 2 0 0 0 2 2h3" />
       <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
+// Zelfde vorm, maar met de pijlen naar binnen: de knop laat zo zien
+// dat hij nu het volledige scherm sluit in plaats van opent.
+function ExitFullscreenIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 8h3a2 2 0 0 0 2-2V3" />
+      <path d="M16 3v3a2 2 0 0 0 2 2h3" />
+      <path d="M8 21v-3a2 2 0 0 0-2-2H3" />
+      <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
     </svg>
   );
 }
