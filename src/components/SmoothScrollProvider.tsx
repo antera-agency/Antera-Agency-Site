@@ -29,6 +29,7 @@ import { useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 
 export default function SmoothScrollProvider({
   children,
@@ -36,6 +37,7 @@ export default function SmoothScrollProvider({
   children: React.ReactNode;
 }) {
   const lenisRef = useRef<Lenis | null>(null);
+  const isDesktop = useDesktopExperience();
 
   useEffect(() => {
     // Respecteer OS-niveau voorkeur voor minder beweging: geen
@@ -44,9 +46,24 @@ export default function SmoothScrollProvider({
       '(prefers-reduced-motion: reduce)'
     ).matches;
 
-    if (prefersReducedMotion) {
-      return;
-    }
+    if (prefersReducedMotion) return;
+
+    // ============================================================
+    // Alleen op desktop wordt het scrollen overgenomen.
+    //
+    // Op telefoon en kleine tablet scrollt de browser zelf. Lenis
+    // vertaalt scrollgebaren naar eigen posities en houdt
+    // ScrollTrigger daarmee synchroon; elke hermeting die daaruit
+    // volgt (en op mobiel gebeurt dat continu, omdat de adresbalk de
+    // vensterhoogte verandert) kan de scrollpositie corrigeren. Dat
+    // is wat er als een sprong te zien was — ook op plekken waar de
+    // sectie zelf niets fout deed, zoals tussen FAQ en CTA.
+    //
+    // `isDesktop` is `null` tot de browser gemeten heeft, dus tijdens
+    // server-rendering en de eerste render wordt Lenis nooit
+    // aangemaakt.
+    // ============================================================
+    if (!isDesktop) return;
 
     gsap.registerPlugin(ScrollTrigger);
 
@@ -58,19 +75,16 @@ export default function SmoothScrollProvider({
     });
     lenisRef.current = lenis;
 
-    // Stap 1 + 3: Lenis meeloopt op GSAP's ticker in plaats van
-    // zijn eigen requestAnimationFrame, en meldt elke tick aan
-    // ScrollTrigger zodat gepinde/scrubbed animaties synchroon
-    // blijven.
     lenis.on('scroll', ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
+    // De ticker-callback krijgt een naam, zodat hij bij het opruimen
+    // ook echt verwijderd kan worden. Stond hij anoniem in de ticker,
+    // dan bleef hij na een breakpoint-wissel achter en riep hij
+    // .raf() aan op een al vernietigde Lenis-instantie.
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
-    // Stap 2: ScrollTrigger gebruikt Lenis als scroll-bron in
-    // plaats van de native window-scroll.
     ScrollTrigger.scrollerProxy(document.body, {
       scrollTop(value) {
         if (arguments.length && typeof value === 'number') {
@@ -93,12 +107,25 @@ export default function SmoothScrollProvider({
     ScrollTrigger.addEventListener('refresh', refreshHandler);
     ScrollTrigger.refresh();
 
+    // Eén hermeting zodra de merkfonts geruild zijn: tot dat moment
+    // is de tekst opgemeten in het fallback-font en kloppen de
+    // pin-posities niet. Alleen op desktop, want alleen daar bestaan
+    // er nog gepinde secties.
+    let cancelled = false;
+    document.fonts?.ready.then(() => {
+      if (!cancelled) ScrollTrigger.refresh();
+    });
+
     return () => {
+      cancelled = true;
       ScrollTrigger.removeEventListener('refresh', refreshHandler);
+      gsap.ticker.remove(tick);
+      gsap.ticker.lagSmoothing(500, 33);
+      ScrollTrigger.scrollerProxy(document.body, undefined);
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, []);
+  }, [isDesktop]);
 
   return <>{children}</>;
 }

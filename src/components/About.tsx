@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { urlFor } from '@/sanity/image';
 import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
@@ -13,6 +14,7 @@ import styles from './About.module.css';
 export default function About({ data }: { data: HomepageData }) {
   const sectionRef = useRef<HTMLElement>(null);
   const photoRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useDesktopExperience();
 
   useGsapContext(sectionRef, ({ isReducedMotion }) => {
     if (isReducedMotion) return;
@@ -34,16 +36,22 @@ export default function About({ data }: { data: HomepageData }) {
       }
     );
 
-    gsap.to(photoRef.current, {
-      yPercent: -10,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 0.6,
-      },
-    });
+    // Parallax op de foto is scroll-gestuurd (scrubbed) en dus
+    // alleen voor desktop. Op mobiel rekent zo'n animatie mee met de
+    // schermhoogte, die daar met de adresbalk meebeweegt. De
+    // eenmalige reveals hierboven en hieronder blijven overal staan.
+    if (isDesktop) {
+      gsap.to(photoRef.current, {
+        yPercent: -10,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 0.6,
+        },
+      });
+    }
 
     gsap.fromTo(
       '[data-about="eyebrow"]',
@@ -104,7 +112,7 @@ export default function About({ data }: { data: HomepageData }) {
         }
       );
     });
-  }, []);
+  }, [isDesktop]);
 
   return (
     <section className={styles.about} ref={sectionRef}>

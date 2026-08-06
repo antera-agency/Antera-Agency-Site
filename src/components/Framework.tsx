@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
 import type { HomepageData } from '@/sanity/types';
@@ -16,6 +17,29 @@ export default function Framework({ data }: { data: HomepageData }) {
   const progressFillRef = useRef<HTMLDivElement>(null);
   const scrollCueRef = useRef<HTMLDivElement>(null);
   const isTouch = useTouchDevice();
+  const isDesktopFramework = useDesktopExperience();
+
+  // ============================================================
+  // Twee varianten van deze sectie.
+  //
+  // Op desktop blijft de gepinde vertelling zoals hij is. Op
+  // telefoon en kleine tablet wordt diezelfde inhoud gewoon onder
+  // elkaar gezet, zonder pin en zonder scrollgestuurde tijdlijn.
+  //
+  // Waarom: de gepinde variant rekent met de hoogte van het
+  // scherm, en die verandert op mobiel voortdurend doordat de
+  // adresbalk in- en uitschuift. Op het toestel was te meten dat
+  // de gepinde laag op 662px bleef staan terwijl de inhoud
+  // erbinnen al met 797px rekende — daardoor viel het eerste
+  // paneel over de introtekst heen en sprong de pagina bij het
+  // in- en uitgaan van de sectie. Dat is geen animatie die
+  // bijgesteld moet worden, maar een aanpak die op een telefoon
+  // niet thuishoort.
+  //
+  // `null` tot de browser gemeten heeft: server en eerste render
+  // maken zo nooit een pin aan, wat een verschil tussen server- en
+  // client-HTML uitsluit.
+  // ============================================================
 
   const steps = (data.frameworkSteps ?? []).map((step, i) => ({
     n: `${String(i + 1).padStart(2, '0')} / ${String((data.frameworkSteps ?? []).length).padStart(2, '0')}`,
@@ -40,6 +64,51 @@ export default function Framework({ data }: { data: HomepageData }) {
     const stage = stageRef.current;
     if (!panels.length || !stage) return;
 
+    // De titelbalk-animatie hoort bij beide varianten: geen pin,
+    // geen invloed op de hoogte van de pagina.
+    gsap.fromTo(
+      '[data-fw="eyebrow"]',
+      { clipPath: 'inset(0 100% 0 0)' },
+      {
+        clipPath: 'inset(0 0% 0 0)',
+        duration: 0.8,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: '[data-fw="eyebrow"]',
+          start: 'top 90%',
+          toggleActions: 'play none none none',
+        },
+      }
+    );
+
+    // ---------- MOBIEL / KLEINE TABLET ----------
+    // Geen pin, geen tijdlijn, geen scrollafstand: de panelen staan
+    // gewoon onder elkaar (zie Framework.module.css). Alleen een
+    // lichte reveal per paneel — puur opacity en een kleine
+    // verschuiving, dus de hoogte van de pagina verandert er niet
+    // door en er kan niets over elkaar heen vallen.
+    if (!isDesktopFramework) {
+      panels.forEach((panel) => {
+        gsap.fromTo(
+          panel,
+          { opacity: 0, y: 24 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: panel,
+              start: 'top 88%',
+              toggleActions: 'play none none none',
+            },
+          }
+        );
+      });
+      return;
+    }
+
+    // ---------- DESKTOP: bestaande gepinde vertelling ----------
     gsap.set(panels[0], { opacity: 1, x: 0 });
     gsap.set(panels.slice(1), { opacity: 0, x: 60 });
 
@@ -50,9 +119,23 @@ export default function Framework({ data }: { data: HomepageData }) {
         end: '+=' + panels.length * 100 + '%',
         scrub: 0.7,
         pin: true,
-        anticipatePin: 1,
+        // Opnieuw meten bij een refresh. De Approach-sectie deed dit
+        // al; hier ontbrak het, waardoor deze pin na een hermeting
+        // (bijvoorbeeld nadat de merkfonts zijn geladen en de tekst
+        // erboven van hoogte verandert) op de oude scrollpositie
+        // bleef starten en eindigen — zichtbaar als een sprong bij
+        // het in- en uitgaan van de sectie.
+        invalidateOnRefresh: true,
+        // `anticipatePin` is hier bewust weggehaald. Het pint een
+        // fractie te vroeg op basis van scrollsnelheid, wat prima
+        // werkt bij native scrollen maar niet samen met de
+        // momentum-afhandeling van Lenis: op de telefoon sloeg de
+        // sectie daardoor omhoog vóórdat de introtekst uit beeld was,
+        // waardoor het eerste paneel eroverheen leek te vallen.
+
       },
     });
+
 
     panels.forEach((panel, i) => {
       tl.to(
@@ -103,21 +186,7 @@ export default function Framework({ data }: { data: HomepageData }) {
       }
     );
 
-    gsap.fromTo(
-      '[data-fw="eyebrow"]',
-      { clipPath: 'inset(0 100% 0 0)' },
-      {
-        clipPath: 'inset(0 0% 0 0)',
-        duration: 0.8,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: '[data-fw="eyebrow"]',
-          start: 'top 90%',
-          toggleActions: 'play none none none',
-        },
-      }
-    );
-  }, [steps.length]);
+  }, [steps.length, isDesktopFramework]);
 
   const highlight = data.frameworkTitleHighlight;
   const titleText = data.frameworkTitle || '';
