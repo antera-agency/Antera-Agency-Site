@@ -135,17 +135,59 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     const track = trackRef.current;
     if (!viewport || !track || baseSlides.length === 0 || reducedMotion) return;
 
-    const unitWidth = track.scrollWidth / repeatCount;
+    // ============================================================
+    // Breedtes uit de echte layout, niet uit een deling.
+    //
+    // Hier stond `track.scrollWidth / repeatCount`. Dat lijkt de
+    // breedte van één set, maar klopt net niet: tussen N kaarten
+    // zitten N-1 tussenruimtes, terwijl er tussen twee opeenvolgende
+    // kopieën óók een tussenruimte hoort. De uitkomst was daardoor
+    // structureel `gap × (1 − 1/repeatCount)` te klein — bij veel
+    // kopieën loopt dat op tot bijna een volle gap. Die fout zit in
+    // `wrap()`, dus hij stapelt zich op bij elke omloop: de track
+    // schuift per cyclus een stukje verder uit het gareel tot een
+    // kaart buiten het bereikbare gebied valt. Op brede schermen
+    // worden er meer kopieën gerenderd, dus daar is het het ergst.
+    //
+    // Nu wordt het rechtstreeks gemeten:
+    //   setWidth  = wat één set zichtbaar breed is (N-1 tussenruimtes)
+    //   unitWidth = de herhaalafstand (N tussenruimtes: elke set wordt
+    //               van de volgende gescheiden door precies één gap)
+    // ============================================================
+    const uniqueCount = baseSlides.length;
+    const firstSlide = slideRefs.current[0];
+    const cardWidth = firstSlide?.offsetWidth ?? 0;
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
     const viewportWidth = viewport.offsetWidth;
-    if (unitWidth <= 0) return;
+    if (cardWidth <= 0 || uniqueCount === 0) return;
+
+    const setWidth = uniqueCount * cardWidth + (uniqueCount - 1) * gap;
+    const unitWidth = uniqueCount * (cardWidth + gap);
 
     unitWidthRef.current = unitWidth;
 
-    if (unitWidth <= viewportWidth) {
+    // Kleine marge zodat de modus niet heen en weer klapt rond één
+    // pixel: eenmaal static blijft het static tot de set duidelijk te
+    // breed wordt, en andersom wordt het pas static als de set er
+    // ruim in past.
+    const FIT_TOLERANCE = 24;
+    const fitsStatic =
+      phase === 'static'
+        ? setWidth <= viewportWidth + FIT_TOLERANCE
+        : setWidth + FIT_TOLERANCE <= viewportWidth;
+
+    if (fitsStatic) {
       if (phase !== 'static' || repeatCount !== 1) {
         setPhase('static');
         setRepeatCount(1);
       }
+      // Cruciaal: de loop-verschuiving weggooien. Zonder dit houdt de
+      // track de laatste `translateX(-…)` van de loop vast. In static
+      // draait de rAF-lus niet meer en zijn er geen sleep-listeners,
+      // dus de set stond scheef of half buiten beeld zónder enige
+      // manier om hem terug te halen — precies het "vastgelopen"
+      // gedrag op brede schermen.
+      track.style.transform = '';
     } else {
       // Genoeg kopieën voor minstens 2 volledige viewport-breedtes
       // aan content, plus een marge — zodat er nooit een moment is
@@ -213,7 +255,16 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
     const track = trackRef.current;
     if (!viewport || !track || phase !== 'loop' || reducedMotion) return;
 
-    const unitWidth = unitWidthRef.current || track.scrollWidth / repeatCount;
+    const unitWidth = unitWidthRef.current;
+    if (unitWidth <= 0) return;
+
+    // Deterministische startpositie. De loop kan opnieuw worden
+    // opgebouwd na een resize (static → loop), en dan kan er nog een
+    // oude translateX op de track staan van de vorige keer. Door hier
+    // expliciet op nul te beginnen én dat meteen weg te schrijven,
+    // start elke loop vanaf dezelfde stand in plaats van met een
+    // sprong vanaf een verouderde waarde.
+    track.style.transform = 'translateX(0px)';
 
     // Aanwijzer staat op de kaart, maar het is nog niet per se een
     // sleepbeweging: pas voorbij DRAG_THRESHOLD is dat zeker. Tot
@@ -567,6 +618,12 @@ export default function PortfolioSlider({ projects }: { projects: PortfolioProje
               key={`${slide.key}-${i}`}
               ref={(el) => {
                 slideRefs.current[i] = el;
+                // Bij het smaller worden van het venster daalt het
+                // aantal kopieën. Zonder deze afkapping blijven de
+                // refs van de verdwenen kaarten in de lijst staan en
+                // meet de actieve-kaart-berekening losgekoppelde
+                // elementen mee.
+                slideRefs.current.length = slides.length;
               }}
             >
               {slide.project ? (
