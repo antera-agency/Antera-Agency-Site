@@ -4,6 +4,16 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import {
+  REVEAL_DURATION,
+  REVEAL_DURATION_INNER,
+  REVEAL_EASE,
+  REVEAL_STAGGER,
+  REVEAL_START,
+  REVEAL_TOGGLE,
+  REVEAL_Y,
+  REVEAL_Y_INNER,
+} from '@/lib/motion';
 import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
@@ -75,23 +85,71 @@ export default function Approach({ data }: { data: HomepageData }) {
     // staan onder elkaar in de gewone documentstroom (zie
     // Approach.module.css). Alleen een lichte reveal per kaart.
     if (!isDesktopApproach) {
+      // Eén tijdlijn per kaart met één trigger. De kaart komt rustig
+      // omhoog, het nummer veegt open, de accentlijn groeit uit en de
+      // tekst volgt — een echo van de horizontale desktopvertelling,
+      // maar dan verticaal en zonder pin.
+      //
+      // De accentlijn groeit met `scaleX`, niet met `width`: breedte
+      // is een layout-eigenschap en zou de kaart tijdens het scrollen
+      // van vorm kunnen laten veranderen. Een transform doet dat
+      // nooit.
       const mobilePanels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
       mobilePanels.forEach((panel) => {
-        gsap.fromTo(
+        const num = panel.querySelector('[data-approach="panel-num"]');
+        const line = panel.querySelector('[data-approach="panel-line"]');
+        const copy = panel.querySelectorAll('[data-approach="panel-copy"]');
+
+        const reveal = gsap.timeline({
+          scrollTrigger: {
+            trigger: panel,
+            start: REVEAL_START,
+            toggleActions: REVEAL_TOGGLE,
+          },
+        });
+
+        reveal.fromTo(
           panel,
-          { opacity: 0, y: 24 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: 'power3.out',
-            scrollTrigger: {
-              trigger: panel,
-              start: 'top 88%',
-              toggleActions: 'play none none none',
-            },
-          }
+          { opacity: 0, y: REVEAL_Y },
+          { opacity: 1, y: 0, duration: REVEAL_DURATION, ease: REVEAL_EASE }
         );
+
+        if (num) {
+          reveal.fromTo(
+            num,
+            { clipPath: 'inset(0 100% 0 0)' },
+            {
+              clipPath: 'inset(0 0% 0 0)',
+              duration: REVEAL_DURATION_INNER,
+              ease: REVEAL_EASE,
+            },
+            `-=${REVEAL_DURATION - REVEAL_STAGGER * 2}`
+          );
+        }
+
+        if (line) {
+          reveal.fromTo(
+            line,
+            { scaleX: 0 },
+            { scaleX: 1, duration: REVEAL_DURATION_INNER, ease: REVEAL_EASE },
+            `-=${REVEAL_DURATION_INNER - REVEAL_STAGGER}`
+          );
+        }
+
+        if (copy.length) {
+          reveal.fromTo(
+            copy,
+            { opacity: 0, y: REVEAL_Y_INNER },
+            {
+              opacity: 1,
+              y: 0,
+              duration: REVEAL_DURATION_INNER,
+              stagger: REVEAL_STAGGER,
+              ease: REVEAL_EASE,
+            },
+            `-=${REVEAL_DURATION_INNER - REVEAL_STAGGER}`
+          );
+        }
       });
       return;
     }
@@ -264,11 +322,21 @@ export default function Approach({ data }: { data: HomepageData }) {
                   panelRefs.current[i] = el;
                 }}
               >
-                <span className={`display ${styles.num}`}>{panel.num}</span>
-                <span className={styles.accentLine} />
-                <span className={styles.tag}>{panel.tag}</span>
-                <h3 className={`display ${styles.panelTitle}`}>{panel.title}</h3>
-                <PortableTextRenderer value={panel.body} className={styles.panelBody} />
+                <span className={`display ${styles.num}`} data-approach="panel-num">
+                  {panel.num}
+                </span>
+                <span className={styles.accentLine} data-approach="panel-line" />
+                <span className={styles.tag} data-approach="panel-copy">
+                  {panel.tag}
+                </span>
+                <h3 className={`display ${styles.panelTitle}`} data-approach="panel-copy">
+                  {panel.title}
+                </h3>
+                <PortableTextRenderer
+                  value={panel.body}
+                  className={styles.panelBody}
+                  data-approach="panel-copy"
+                />
               </div>
             ))}
           </div>
