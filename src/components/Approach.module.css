@@ -165,6 +165,10 @@
   background: var(--yellow);
   margin-bottom: 22px;
   transition: width 0.7s var(--ease-premium);
+  /* Op mobiel groeit deze lijn met scaleX in plaats van met width
+     (zie Approach.tsx). Vanaf links, zodat hij vanuit de kaartrand
+     uitschuift in plaats van vanuit zijn eigen midden. */
+  transform-origin: left center;
 }
 
 .panel.isActive .accentLine {

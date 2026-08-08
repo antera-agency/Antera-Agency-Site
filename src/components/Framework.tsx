@@ -4,6 +4,16 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGsapContext } from '@/hooks/useGsapContext';
+import {
+  REVEAL_DURATION,
+  REVEAL_DURATION_INNER,
+  REVEAL_EASE,
+  REVEAL_STAGGER,
+  REVEAL_START,
+  REVEAL_TOGGLE,
+  REVEAL_Y,
+  REVEAL_Y_INNER,
+} from '@/lib/motion';
 import { useDesktopExperience } from '@/hooks/useDesktopExperience';
 import { useTouchDevice } from '@/hooks/useTouchDevice';
 import PortableTextRenderer from './PortableTextRenderer';
@@ -88,22 +98,61 @@ export default function Framework({ data }: { data: HomepageData }) {
     // verschuiving, dus de hoogte van de pagina verandert er niet
     // door en er kan niets over elkaar heen vallen.
     if (!isDesktopFramework) {
+      // Eén tijdlijn per paneel, met één trigger — niet een aparte
+      // trigger per nummer, kop en alinea. Dat scheelt op de langste
+      // sectie van de pagina een hoop waarnemers, terwijl het
+      // visueel hetzelfde oplevert.
+      //
+      // De opbouw verwijst naar de gepinde desktopvertelling: eerst
+      // komt het paneel rustig omhoog, dan veegt het stapnummer open
+      // en volgen kop en tekst kort daarna. Alles met opacity en
+      // transform, dus de hoogte van het paneel verandert nooit.
       panels.forEach((panel) => {
-        gsap.fromTo(
+        const num = panel.querySelector('[data-fw="panel-num"]');
+        const title = panel.querySelector('[data-fw="panel-title"]');
+        const body = panel.querySelector('[data-fw="panel-body"]');
+
+        const reveal = gsap.timeline({
+          scrollTrigger: {
+            trigger: panel,
+            start: REVEAL_START,
+            toggleActions: REVEAL_TOGGLE,
+          },
+        });
+
+        reveal.fromTo(
           panel,
-          { opacity: 0, y: 24 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: 'power3.out',
-            scrollTrigger: {
-              trigger: panel,
-              start: 'top 88%',
-              toggleActions: 'play none none none',
-            },
-          }
+          { opacity: 0, y: REVEAL_Y },
+          { opacity: 1, y: 0, duration: REVEAL_DURATION, ease: REVEAL_EASE }
         );
+
+        if (num) {
+          reveal.fromTo(
+            num,
+            { clipPath: 'inset(0 100% 0 0)' },
+            {
+              clipPath: 'inset(0 0% 0 0)',
+              duration: REVEAL_DURATION_INNER,
+              ease: REVEAL_EASE,
+            },
+            `-=${REVEAL_DURATION - REVEAL_STAGGER * 2}`
+          );
+        }
+
+        [title, body].forEach((el, i) => {
+          if (!el) return;
+          reveal.fromTo(
+            el,
+            { opacity: 0, y: REVEAL_Y_INNER },
+            {
+              opacity: 1,
+              y: 0,
+              duration: REVEAL_DURATION_INNER,
+              ease: REVEAL_EASE,
+            },
+            i === 0 ? '-=0.34' : `-=${REVEAL_DURATION_INNER - REVEAL_STAGGER}`
+          );
+        });
       });
       return;
     }
@@ -228,9 +277,17 @@ export default function Framework({ data }: { data: HomepageData }) {
                   panelRefs.current[i] = el;
                 }}
               >
-                <div className={styles.panelNum}>{step.n}</div>
-                <h3 className={`display ${styles.panelTitle}`}>{step.title}</h3>
-                <PortableTextRenderer value={step.body} className={styles.panelBody} />
+                <div className={styles.panelNum} data-fw="panel-num">
+                  {step.n}
+                </div>
+                <h3 className={`display ${styles.panelTitle}`} data-fw="panel-title">
+                  {step.title}
+                </h3>
+                <PortableTextRenderer
+                  value={step.body}
+                  className={styles.panelBody}
+                  data-fw="panel-body"
+                />
               </div>
             ))}
           </div>
