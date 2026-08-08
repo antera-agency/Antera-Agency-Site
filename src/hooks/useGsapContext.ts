@@ -15,11 +15,24 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
  * - Respecteert prefers-reduced-motion: als dat actief staat,
  *   wordt de animatie-callback helemaal niet uitgevoerd en blijft
  *   de sectie gewoon statisch zichtbaar (dankzij de CSS-defaults).
+ * - De callback mag een opruimfunctie teruggeven. Die wordt
+ *   meegegeven aan de GSAP-context en dus uitgevoerd bij
+ *   `ctx.revert()`.
+ *
+ * Dat laatste was er niet, en dat is een stille valkuil gebleken:
+ * `gsap.context()` ruimt alleen op wat GSAP zélf heeft aangemaakt
+ * (tweens, ScrollTriggers). Een sectie die daarnaast een gewone
+ * `addEventListener` zet, moet die zelf weer verwijderen — maar de
+ * teruggegeven opruimfunctie werd hier weggegooid, waardoor zulke
+ * luisteraars bleven staan en zich bij elke nieuwe run opstapelden.
  * ============================================================
  */
 export function useGsapContext(
   scope: RefObject<HTMLElement | null>,
-  callback: (context: { gsap: typeof gsap; isReducedMotion: boolean }) => void,
+  callback: (context: {
+    gsap: typeof gsap;
+    isReducedMotion: boolean;
+  }) => void | (() => void),
   deps: unknown[] = []
 ) {
   const hasReducedMotion = useRef(false);
@@ -32,9 +45,10 @@ export function useGsapContext(
       '(prefers-reduced-motion: reduce)'
     ).matches;
 
-    const ctx = gsap.context(() => {
-      callback({ gsap, isReducedMotion: hasReducedMotion.current });
-    }, scope);
+    const ctx = gsap.context(
+      () => callback({ gsap, isReducedMotion: hasReducedMotion.current }),
+      scope
+    );
 
     return () => ctx.revert();
     // eslint-disable-next-line react-hooks/exhaustive-deps
