@@ -75,6 +75,12 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
       ease: 'sine.inOut',
     });
 
+    // Deze twee luisteraars zijn gewone DOM-listeners, geen GSAP.
+    // `gsap.context().revert()` ruimt ze dus niet op — dat moeten we
+    // zelf doen. De opruimfunctie wordt hieronder teruggegeven en
+    // vanaf nu ook echt uitgevoerd (zie useGsapContext).
+    let removeTilt: (() => void) | undefined;
+
     // ---------- 3D mouse-tilt on the video frame (desktop only) ----------
     if (window.matchMedia('(min-width: 700px)').matches && sectionRef.current) {
       const section = sectionRef.current;
@@ -97,6 +103,11 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
 
       section.addEventListener('mousemove', handleMove);
       section.addEventListener('mouseleave', handleLeave);
+
+      removeTilt = () => {
+        section.removeEventListener('mousemove', handleMove);
+        section.removeEventListener('mouseleave', handleLeave);
+      };
     }
 
     // ---------- scroll parallax ----------
@@ -105,7 +116,11 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
     // verandert op mobiel steeds doordat de adresbalk in- en
     // uitschuift. De binnenkomst-animatie hierboven is niet
     // scroll-gestuurd en blijft dus overal werken.
-    if (!isDesktop) return;
+    //
+    // Ook op dit pad de opruimfunctie teruggeven: de luisteraars
+    // hierboven zijn dan al gezet, dus zonder deze return zouden ze
+    // op tablet-breedtes alsnog blijven hangen.
+    if (!isDesktop) return removeTilt;
 
     gsap.to(frameRef.current, {
       yPercent: 18,
@@ -149,6 +164,8 @@ export default function Hero({ data, calendlyUrl }: { data: HomepageData; calend
         scrub: 0.5,
       },
     });
+
+    return removeTilt;
   }, [isDesktop]);
 
   const titleLines = splitTitleLines({
